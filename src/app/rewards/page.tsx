@@ -40,7 +40,9 @@ export default function RewardsPage() {
     Promise.all([
       supabase.from('user_profiles').select('total_points').eq('id', user.id).single(),
       supabase.from('rewards_redemptions').select('reward_label, points_cost, redeemed_at').eq('user_id', user.id).order('redeemed_at', { ascending: false }).limit(5),
-    ]).then(([{ data: prof, error: profError }, { data: reds, error: redsError }]) => {
+    ]).then(([profResult, redsResult]) => {
+      const prof = profResult.data;
+      const reds = redsResult.data;
       if (prof) setTotalPoints(prof.total_points || 0);
       setRedemptions(reds || []);
       setLoading(false);

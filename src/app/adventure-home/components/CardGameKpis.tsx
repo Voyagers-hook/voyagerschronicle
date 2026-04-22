@@ -38,7 +38,9 @@ export default function CardGameKpis() {
         .select('cards(power, stealth, stamina, beauty)')
         .eq('user_id', user.id),
       supabase.from('cards').select('id', { count: 'exact', head: true }),
-    ]).then(([{ data: userCards, error: userCardsError }, { count, error: countError }]) => {
+    ]).then(([userCardsResult, countResult]) => {
+      const { data: userCards, error: userCardsError } = userCardsResult;
+      const { count, error: countError } = countResult;
       const cards = (userCards || []).map((uc: Record<string, unknown>) => uc.cards as { power: number; stealth: number; stamina: number; beauty: number } | null).filter(Boolean) as { power: number; stealth: number; stamina: number; beauty: number }[];
       const power   = cards.reduce((s, c) => s + (c?.power   || 0), 0);
       const stealth = cards.reduce((s, c) => s + (c?.stealth || 0), 0);
