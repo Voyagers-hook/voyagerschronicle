@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -8,177 +8,105 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-type Rarity = 'Widespread' | 'Elusive' | 'Specimen' | 'Legendary';
-
-interface Card {
+interface Reward {
   id?: string;
-  card_number: number;
-  name: string;
-  species: string;
-  rarity: Rarity;
-  image_url: string | null;
-  power: number;
-  stealth: number;
-  energy: number;
-  beauty: number;
-  habitat: string;
+  title: string;
   description: string | null;
-  foil: boolean;
-  gradient: string;
-  border_color: string;
-  hp: number;
-  card_level: number;
-  drop_rate: number;
+  xp_cost: number;
+  reward_type: string;
+  icon: string;
+  active: boolean;
+  stock: number | null;
+  link: string | null;
 }
 
-const RARITY_DEFAULTS: Record<Rarity, { hp: number; card_level: number; drop_rate: number; gradient: string; border_color: string }> = {
-  Widespread: { hp: 50,  card_level: 1, drop_rate: 50, gradient: 'from-green-400 to-green-600',   border_color: '#22c55e' },
-  Elusive:    { hp: 75,  card_level: 2, drop_rate: 25, gradient: 'from-blue-400 to-blue-600',    border_color: '#3b82f6' },
-  Specimen:   { hp: 100, card_level: 3, drop_rate: 15, gradient: 'from-purple-400 to-purple-600', border_color: '#a855f7' },
-  Legendary:  { hp: 150, card_level: 4, drop_rate: 5,  gradient: 'from-yellow-400 to-orange-500', border_color: '#f59e0b' },
-};
+const REWARD_TYPES = [
+  { value: 'general',     label: 'General',       emoji: '🎁' },
+  { value: 'discount',    label: 'Discount',       emoji: '🏷️' },
+  { value: 'product',     label: 'Product',        emoji: '📦' },
+  { value: 'experience',  label: 'Experience',     emoji: '🎣' },
+  { value: 'membership',  label: 'Membership',     emoji: '⭐' },
+  { value: 'digital',     label: 'Digital',        emoji: '💻' },
+];
 
-const RARITY_BADGE: Record<Rarity, string> = {
-  Widespread: 'bg-green-100 text-green-800',
-  Elusive:    'bg-blue-100 text-blue-800',
-  Specimen:   'bg-purple-100 text-purple-800',
-  Legendary:  'bg-yellow-100 text-yellow-800',
-};
+const ICONS = ['🎁', '🏆', '🎣', '🐟', '⚓', '🌊', '🎯', '💎', '🔑', '🛒', '🎫', '🏅', '🎖️', '🌟', '💰', '🎊'];
 
-const emptyCard = (): Omit<Card, 'id'> => ({
-  card_number: 0,
-  name: '',
-  species: '',
-  rarity: 'Widespread',
-  image_url: null,
-  power: 0,
-  stealth: 0,
-  energy: 0,
-  beauty: 0,
-  habitat: '',
+const emptyReward = (): Omit<Reward, 'id'> => ({
+  title: '',
   description: '',
-  foil: false,
-  gradient: RARITY_DEFAULTS.Widespread.gradient,
-  border_color: RARITY_DEFAULTS.Widespread.border_color,
-  hp: RARITY_DEFAULTS.Widespread.hp,
-  card_level: RARITY_DEFAULTS.Widespread.card_level,
-  drop_rate: RARITY_DEFAULTS.Widespread.drop_rate,
+  xp_cost: 100,
+  reward_type: 'general',
+  icon: '🎁',
+  active: true,
+  stock: null,
+  link: '',
 });
 
-export default function AdminCardsPage() {
-  const [cards, setCards] = useState<Card[]>([]);
+export default function AdminRewardsPage() {
+  const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
   const [showForm, setShowForm] = useState(false);
-  const [editingCard, setEditingCard] = useState<Card | null>(null);
-  const [form, setForm] = useState<Omit<Card, 'id'>>(emptyCard());
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const [editingReward, setEditingReward] = useState<Reward | null>(null);
+  const [form, setForm] = useState<Omit<Reward, 'id'>>(emptyReward());
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [showIconPicker, setShowIconPicker] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { fetchRewards(); }, []);
+  useEffect(() => {
+    if (success) { const t = setTimeout(() => setSuccess(null), 3000); return () => clearTimeout(t); }
+  }, [success]);
 
-  useEffect(() => { fetchCards(); }, []);
-
-  async function fetchCards() {
+  async function fetchRewards() {
     setLoading(true);
     const { data, error } = await supabase
-      .from('cards')
+      .from('rewards_catalogue')
       .select('*')
-      .order('card_number', { ascending: true });
+      .order('created_at', { ascending: true });
     if (error) setError(error.message);
-    else setCards(data || []);
+    else setRewards(data || []);
     setLoading(false);
   }
 
   function openCreate() {
-    setEditingCard(null);
-    setForm(emptyCard());
-    setImagePreview(null);
-    setImageFile(null);
+    setEditingReward(null);
+    setForm(emptyReward());
     setShowForm(true);
   }
 
-  function openEdit(card: Card) {
-    setEditingCard(card);
-    setForm({ ...card });
-    setImagePreview(card.image_url || null);
-    setImageFile(null);
+  function openEdit(reward: Reward) {
+    setEditingReward(reward);
+    setForm({ ...reward });
     setShowForm(true);
-  }
-
-  function handleRarityChange(rarity: Rarity) {
-    const defaults = RARITY_DEFAULTS[rarity];
-    setForm(f => ({
-      ...f,
-      rarity,
-      hp: defaults.hp,
-      card_level: defaults.card_level,
-      drop_rate: defaults.drop_rate,
-      gradient: defaults.gradient,
-      border_color: defaults.border_color,
-    }));
-  }
-
-  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Image must be under 5 MB');
-      return;
-    }
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onload = () => setImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
-  }
-
-  async function uploadImage(file: File): Promise<string> {
-    setUploadingImage(true);
-    const ext = file.name.split('.').pop();
-    const path = `cards/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error } = await supabase.storage.from('card-images').upload(path, file, {
-      contentType: file.type,
-      upsert: false,
-    });
-    setUploadingImage(false);
-    if (error) throw new Error(`Image upload failed: ${error.message}`);
-    const { data } = supabase.storage.from('card-images').getPublicUrl(path);
-    return data.publicUrl;
   }
 
   async function handleSave() {
     setError(null);
-    if (!form.name.trim()) { setError('Card name is required'); return; }
-    if (!form.species.trim()) { setError('Species is required'); return; }
-    if (!form.habitat.trim()) { setError('Habitat is required'); return; }
-    if (!form.card_number) { setError('Card number is required'); return; }
+    if (!form.title.trim()) { setError('Title is required'); return; }
+    if (!form.xp_cost || form.xp_cost < 1) { setError('XP cost must be at least 1'); return; }
 
     setSaving(true);
     try {
-      let imageUrl = form.image_url;
-      if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
-      }
+      const payload = {
+        ...form,
+        link: form.link?.trim() || null,
+        description: form.description?.trim() || null,
+        stock: form.stock ?? null,
+      };
 
-      const payload = { ...form, image_url: imageUrl };
-
-      if (editingCard?.id) {
-        const { error } = await supabase.from('cards').update(payload).eq('id', editingCard.id);
+      if (editingReward?.id) {
+        const { error } = await supabase.from('rewards_catalogue').update(payload).eq('id', editingReward.id);
         if (error) throw error;
-        setSuccess(`"${form.name}" updated successfully`);
+        setSuccess(`"${form.title}" updated`);
       } else {
-        const { error } = await supabase.from('cards').insert([payload]);
+        const { error } = await supabase.from('rewards_catalogue').insert([payload]);
         if (error) throw error;
-        setSuccess(`"${form.name}" created successfully`);
+        setSuccess(`"${form.title}" created`);
       }
-
       setShowForm(false);
-      await fetchCards();
+      await fetchRewards();
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
     } finally {
@@ -186,349 +114,304 @@ export default function AdminCardsPage() {
     }
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (confirmDelete !== id) {
-      setConfirmDelete(id);
-      return;
-    }
-    const { error } = await supabase.from('cards').delete().eq('id', id);
+  async function handleToggleActive(reward: Reward) {
+    const { error } = await supabase
+      .from('rewards_catalogue')
+      .update({ active: !reward.active })
+      .eq('id', reward.id!);
     if (error) { setError(error.message); return; }
-    setConfirmDelete(null);
-    setSuccess(`"${name}" deleted`);
-    await fetchCards();
+    setSuccess(`"${reward.title}" ${!reward.active ? 'activated' : 'deactivated'}`);
+    await fetchRewards();
   }
 
-  useEffect(() => {
-    if (success) { const t = setTimeout(() => setSuccess(null), 3000); return () => clearTimeout(t); }
-  }, [success]);
+  async function handleDelete(id: string, title: string) {
+    if (confirmDelete !== id) { setConfirmDelete(id); return; }
+    const { error } = await supabase.from('rewards_catalogue').delete().eq('id', id);
+    if (error) { setError(error.message); return; }
+    setConfirmDelete(null);
+    setSuccess(`"${title}" deleted`);
+    await fetchRewards();
+  }
 
-  const StatSlider = ({ label, field }: { label: string; field: 'power' | 'stealth' | 'energy' | 'beauty' }) => (
-    <div>
-      <div className="flex justify-between text-sm mb-1">
-        <span className="font-medium text-gray-700">{label}</span>
-        <span className="text-gray-500 font-mono">{form[field]}</span>
-      </div>
-      <input
-        type="range" min={0} max={100} value={form[field]}
-        onChange={e => setForm(f => ({ ...f, [field]: Number(e.target.value) }))}
-        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-      />
-    </div>
-  );
+  const activeCount = rewards.filter(r => r.active).length;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Cards Manager</h1>
-            <p className="text-sm text-gray-500 mt-1">{cards.length} card{cards.length !== 1 ? 's' : ''} in collection</p>
+            <h1 className="text-2xl font-bold text-gray-900">Rewards Manager</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              {rewards.length} total · {activeCount} active
+            </p>
           </div>
           <button
             onClick={openCreate}
             className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
           >
-            <span className="text-lg leading-none">+</span> New Card
+            <span className="text-lg leading-none">+</span> New Reward
           </button>
         </div>
 
         {/* Alerts */}
         {error && (
           <div className="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            <span className="text-red-500">⚠</span>
-            <span>{error}</span>
+            <span>⚠</span> <span>{error}</span>
             <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">✕</button>
           </div>
         )}
         {success && (
-          <div className="mb-4 flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-sm">
+          <div className="mb-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-sm">
             <span>✓</span> {success}
           </div>
         )}
 
-        {/* Card Form Modal */}
+        {/* Form Modal */}
         {showForm && (
           <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8">
               <div className="flex items-center justify-between px-6 py-4 border-b">
                 <h2 className="text-lg font-bold text-gray-900">
-                  {editingCard ? `Edit: ${editingCard.name}` : 'Create New Card'}
+                  {editingReward ? `Edit: ${editingReward.title}` : 'Create New Reward'}
                 </h2>
                 <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
               </div>
 
-              <div className="p-6 space-y-6">
+              <div className="p-6 space-y-5">
 
-                {/* Image Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Card Image</label>
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="relative cursor-pointer rounded-xl border-2 border-dashed border-gray-300 hover:border-emerald-400 transition-colors flex items-center justify-center overflow-hidden"
-                    style={{ height: 180 }}
-                  >
-                    {imagePreview ? (
-                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="text-center p-4">
-                        <div className="text-4xl mb-2">🖼</div>
-                        <p className="text-sm text-gray-500">Click to upload image</p>
-                        <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP · max 5 MB</p>
-                      </div>
-                    )}
-                    {uploadingImage && (
-                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                        <div className="text-sm text-gray-600 font-medium">Uploading…</div>
+                {/* Icon + Title row */}
+                <div className="flex gap-3 items-start">
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowIconPicker(!showIconPicker)}
+                      className="w-14 h-14 text-3xl bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center border border-gray-200 transition-colors"
+                    >
+                      {form.icon}
+                    </button>
+                    {showIconPicker && (
+                      <div className="absolute top-16 left-0 z-10 bg-white border border-gray-200 rounded-xl shadow-xl p-3 grid grid-cols-4 gap-2 w-48">
+                        {ICONS.map(icon => (
+                          <button
+                            key={icon}
+                            onClick={() => { setForm(f => ({ ...f, icon })); setShowIconPicker(false); }}
+                            className="text-2xl w-10 h-10 hover:bg-gray-100 rounded-lg flex items-center justify-center"
+                          >
+                            {icon}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
-                  <input
-                    ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp"
-                    onChange={handleImageSelect} className="hidden"
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                    <input
+                      type="text" value={form.title}
+                      onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="e.g. 10% Discount Code"
+                    />
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    value={form.description || ''}
+                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                    rows={2}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                    placeholder="What does the member get?"
                   />
                 </div>
 
-                {/* Basic Info */}
+                {/* Link */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Link <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="url" value={form.link || ''}
+                    onChange={e => setForm(f => ({ ...f, link: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="https://your-store.com/discount"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Members will see a clickable button when redeeming this reward</p>
+                </div>
+
+                {/* Type + XP Cost */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Card Number *</label>
-                    <input
-                      type="number" min={1} value={form.card_number || ''}
-                      onChange={e => setForm(f => ({ ...f, card_number: Number(e.target.value) }))}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      placeholder="e.g. 001"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Rarity *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                     <select
-                      value={form.rarity}
-                      onChange={e => handleRarityChange(e.target.value as Rarity)}
+                      value={form.reward_type}
+                      onChange={e => setForm(f => ({ ...f, reward_type: e.target.value }))}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
-                      {(['Widespread', 'Elusive', 'Specimen', 'Legendary'] as Rarity[]).map(r => (
-                        <option key={r} value={r}>{r}</option>
+                      {REWARD_TYPES.map(t => (
+                        <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Card Name *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">XP Cost *</label>
                     <input
-                      type="text" value={form.name}
-                      onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                      type="number" min={1} value={form.xp_cost}
+                      onChange={e => setForm(f => ({ ...f, xp_cost: Number(e.target.value) }))}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      placeholder="e.g. Atlantic Salmon"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Species *</label>
-                    <input
-                      type="text" value={form.species}
-                      onChange={e => setForm(f => ({ ...f, species: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      placeholder="e.g. Salmo salar"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Habitat *</label>
-                    <input
-                      type="text" value={form.habitat}
-                      onChange={e => setForm(f => ({ ...f, habitat: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      placeholder="e.g. Fast-flowing rivers"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea
-                      value={form.description || ''}
-                      onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                      rows={2}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
-                      placeholder="Flavour text shown on card…"
                     />
                   </div>
                 </div>
 
-                {/* Drop Rate */}
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-semibold text-amber-800">Drop Rate</span>
-                    <span className="text-amber-700 font-mono font-bold">{form.drop_rate}%</span>
-                  </div>
+                {/* Stock */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Stock limit <span className="text-gray-400 font-normal">(leave blank for unlimited)</span>
+                  </label>
                   <input
-                    type="range" min={1} max={100} value={form.drop_rate}
-                    onChange={e => setForm(f => ({ ...f, drop_rate: Number(e.target.value) }))}
-                    className="w-full h-2 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
+                    type="number" min={1}
+                    value={form.stock ?? ''}
+                    onChange={e => setForm(f => ({ ...f, stock: e.target.value ? Number(e.target.value) : null }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Unlimited"
                   />
-                  <p className="text-xs text-amber-600 mt-2">
-                    Higher % = more common in packs. Auto-set by rarity but adjustable.
-                  </p>
                 </div>
 
-                {/* Stats */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Stats</h3>
-                  <StatSlider label="⚔ Power" field="power" />
-                  <StatSlider label="⚡ Energy" field="energy" />
-                  <StatSlider label="🫧 Stealth" field="stealth" />
-                  <StatSlider label="✨ Beauty" field="beauty" />
-                </div>
-
-                {/* Auto-set info */}
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Auto-set from Rarity</p>
-                  <div className="flex gap-6 text-sm">
-                    <div><span className="text-gray-500">HP: </span><span className="font-bold text-gray-800">{form.hp}</span></div>
-                    <div><span className="text-gray-500">Card Level: </span><span className="font-bold text-gray-800">{form.card_level}</span></div>
-                    <div>
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${RARITY_BADGE[form.rarity]}`}>
-                        {form.rarity}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Foil toggle */}
+                {/* Active toggle */}
                 <label className="flex items-center gap-3 cursor-pointer">
                   <div
-                    onClick={() => setForm(f => ({ ...f, foil: !f.foil }))}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${form.foil ? 'bg-emerald-600' : 'bg-gray-300'}`}
+                    onClick={() => setForm(f => ({ ...f, active: !f.active }))}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${form.active ? 'bg-emerald-600' : 'bg-gray-300'}`}
                   >
-                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.foil ? 'translate-x-5' : ''}`} />
+                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.active ? 'translate-x-5' : ''}`} />
                   </div>
-                  <span className="text-sm font-medium text-gray-700">Foil card ✨</span>
+                  <span className="text-sm font-medium text-gray-700">Active (visible to members)</span>
                 </label>
-
               </div>
 
-              {/* Footer */}
               <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-2xl">
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium"
-                >
+                <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium">
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={saving || uploadingImage}
-                  className="px-5 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  disabled={saving}
+                  className="px-5 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
                 >
-                  {saving ? 'Saving…' : editingCard ? 'Save Changes' : 'Create Card'}
+                  {saving ? 'Saving…' : editingReward ? 'Save Changes' : 'Create Reward'}
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Cards Table */}
+        {/* Rewards Grid */}
         {loading ? (
           <div className="flex items-center justify-center h-48 text-gray-400">
-            <div className="text-center">
-              <div className="text-2xl mb-2">⏳</div>
-              <p className="text-sm">Loading cards…</p>
-            </div>
+            <div className="text-center"><div className="text-2xl mb-2">⏳</div><p className="text-sm">Loading rewards…</p></div>
           </div>
-        ) : cards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-400 bg-white rounded-2xl border-2 border-dashed border-gray-200">
-            <div className="text-4xl mb-3">🃏</div>
-            <p className="font-semibold text-gray-600">No cards yet</p>
-            <p className="text-sm mt-1">Create your first card to get started</p>
+        ) : rewards.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 bg-white rounded-2xl border-2 border-dashed border-gray-200 text-gray-400">
+            <div className="text-4xl mb-3">🎁</div>
+            <p className="font-semibold text-gray-600">No rewards yet</p>
+            <p className="text-sm mt-1">Create your first reward to get started</p>
             <button onClick={openCreate} className="mt-4 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors">
-              Create First Card
+              Create First Reward
             </button>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">#</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Card</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Rarity</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Drop Rate</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Stats</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">HP / Lvl</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {cards.map(card => (
-                  <tr key={card.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-400 font-mono text-xs">{String(card.card_number).padStart(3, '0')}</td>
-                    <td className="px-4 py-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {rewards.map(reward => {
+              const typeInfo = REWARD_TYPES.find(t => t.value === reward.reward_type);
+              return (
+                <div
+                  key={reward.id}
+                  className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all ${
+                    reward.active ? 'border-gray-100' : 'border-gray-200 opacity-60'
+                  }`}
+                >
+                  <div className="p-5">
+                    <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        {card.image_url ? (
-                          <img src={card.image_url} alt={card.name} className="w-9 h-9 rounded-lg object-cover border border-gray-100" />
-                        ) : (
-                          <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300 text-lg">🃏</div>
-                        )}
+                        <span className="text-3xl">{reward.icon}</span>
                         <div>
-                          <p className="font-semibold text-gray-900">{card.name}</p>
-                          <p className="text-xs text-gray-400 italic">{card.species}</p>
+                          <h3 className="font-bold text-gray-900 text-sm leading-tight">{reward.title}</h3>
+                          <span className="text-xs text-gray-400">{typeInfo?.emoji} {typeInfo?.label}</span>
                         </div>
-                        {card.foil && <span className="text-xs">✨</span>}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${RARITY_BADGE[card.rarity]}`}>
-                        {card.rarity}
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        reward.active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {reward.active ? 'Active' : 'Hidden'}
                       </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 bg-gray-100 rounded-full h-1.5">
-                          <div className="bg-amber-400 h-1.5 rounded-full" style={{ width: `${card.drop_rate}%` }} />
+                    </div>
+
+                    {reward.description && (
+                      <p className="text-xs text-gray-500 mb-3 leading-relaxed">{reward.description}</p>
+                    )}
+
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="flex items-center gap-1.5 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
+                        <span>⭐</span> {reward.xp_cost} XP
+                      </div>
+                      {reward.stock !== null && (
+                        <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
+                          <span>📦</span> {reward.stock} in stock
                         </div>
-                        <span className="text-xs text-gray-500 font-mono">{card.drop_rate}%</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-xs text-gray-500 space-y-0.5">
-                        <div>⚔ {card.power} &nbsp; ⚡ {card.energy}</div>
-                        <div>🫧 {card.stealth} &nbsp; ✨ {card.beauty}</div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
-                      <span className="font-mono">{card.hp} HP</span>
-                      <span className="mx-1 text-gray-300">/</span>
-                      <span>Lv.{card.card_level}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openEdit(card)}
-                          className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(card.id!, card.name)}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                            confirmDelete === card.id
-                              ? 'bg-red-600 text-white hover:bg-red-700'
-                              : 'text-red-500 bg-red-50 hover:bg-red-100'
-                          }`}
-                        >
-                          {confirmDelete === card.id ? 'Confirm?' : 'Delete'}
-                        </button>
-                        {confirmDelete === card.id && (
-                          <button
-                            onClick={() => setConfirmDelete(null)}
-                            className="px-2 py-1.5 text-xs text-gray-400 hover:text-gray-600"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      )}
+                      {reward.link && (
+                        <div className="flex items-center gap-1 bg-purple-50 text-purple-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
+                          <span>🔗</span> Link
+                        </div>
+                      )}
+                    </div>
+
+                    {reward.link && (
+                      <a
+                        href={reward.link} target="_blank" rel="noopener noreferrer"
+                        className="text-xs text-blue-500 hover:text-blue-700 underline truncate block mb-3"
+                      >
+                        {reward.link}
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 px-5 py-3 bg-gray-50 border-t border-gray-100">
+                    <button
+                      onClick={() => openEdit(reward)}
+                      className="flex-1 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleToggleActive(reward)}
+                      className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                        reward.active
+                          ? 'text-gray-500 bg-white border border-gray-200 hover:bg-gray-100'
+                          : 'text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100'
+                      }`}
+                    >
+                      {reward.active ? 'Hide' : 'Show'}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(reward.id!, reward.title)}
+                      className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                        confirmDelete === reward.id
+                          ? 'bg-red-600 text-white'
+                          : 'text-red-500 bg-white border border-gray-200 hover:bg-red-50'
+                      }`}
+                    >
+                      {confirmDelete === reward.id ? 'Confirm?' : 'Delete'}
+                    </button>
+                    {confirmDelete === reward.id && (
+                      <button onClick={() => setConfirmDelete(null)} className="text-gray-400 hover:text-gray-600 text-xs px-1">✕</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
