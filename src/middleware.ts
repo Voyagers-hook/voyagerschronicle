@@ -14,27 +14,9 @@ function injectTokenFromHeader(request: NextRequest): void {
   request.cookies.set(`sb-${getProjectRef()}-auth-token`, token);
 }
 
-function isPreviewRequest(request: NextRequest): boolean {
-  // Rocket preview iframe injects this header
-  const referer = request.headers.get('referer') ?? '';
-  const host = request.headers.get('host') ?? '';
-  // Allow bypass when accessed from builtwithrocket.new platform or via ?preview=1
-  const isRocketPlatform =
-    referer.includes('builtwithrocket.new') ||
-    referer.includes('rocket.new') ||
-    request.nextUrl.searchParams.get('preview') === '1';
-  // Also bypass when the app itself is the host (direct preview URL)
-  const isSelfHosted = host.includes('builtwithrocket.new');
-  return isRocketPlatform || isSelfHosted;
-}
-
 export async function middleware(request: NextRequest) {
-  // Skip auth gate entirely in preview/dev mode so all pages are accessible
-  if (isPreviewRequest(request)) {
-    return NextResponse.next({ request });
-  }
-
   injectTokenFromHeader(request);
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -57,14 +39,35 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
+  const pathname = request.nextUrl.pathname;
+
+  // --- Admin route protection ---
+  // Must be authenticated AND have admin role in metadata
+  const isAdminRoute = pathname.startsWith('/admin');
+  if (isAdminRoute) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login-screen';
+      return NextResponse.redirect(url);
+    }
+    const isAdmin =
+      user.user_metadata?.role === 'admin' ||
+      user.app_metadata?.role === 'admin';
+    if (!isAdmin) {
+      // Authenticated but not admin — redirect to main app
+      const url = request.nextUrl.clone();
+      url.pathname = '/adventure-home';
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // --- General protected routes ---
   const protectedPaths = [
     '/adventure-home', '/card-collection', '/card-opening', '/trading',
     '/quiz', '/leaderboard', '/fun-facts', '/rewards', '/catch-log',
-    '/settings', '/admin', '/admin-analytics',
+    '/settings',
   ];
-
-  const isProtected = protectedPaths.some(p => request.nextUrl.pathname.startsWith(p));
-
+  const isProtected = protectedPaths.some(p => pathname.startsWith(p));
   if (!user && isProtected) {
     const url = request.nextUrl.clone();
     url.pathname = '/login-screen';
