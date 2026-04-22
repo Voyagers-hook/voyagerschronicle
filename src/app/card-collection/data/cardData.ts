@@ -28,8 +28,8 @@ export const rarityConfig: Record<CardRarity, { color: string; bg: string; glow:
   Legendary:  { color: 'text-amber-700',   bg: 'bg-amber-50',    glow: 'shadow-amber-400',    label: 'Legendary',   badge: 'bg-amber-100 text-amber-800' },
 };
 
-export const allCards: FishingCard[] = [
-  
+export const allCards: FishingCard[] = [];
+
 export function getUserStats(cards: FishingCard[]) {
   const collected = cards.filter(c => c.collected);
   return {
