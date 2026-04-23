@@ -53,6 +53,7 @@ export default function RewardsPage() {
         reward_type: reward.reward_type,
         reward_label: reward.title,
         points_cost: reward.xp_cost,
+        catalogue_id: reward.id,
       });
       if (error) throw error;
       // Deduct points

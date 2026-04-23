@@ -125,6 +125,8 @@ CREATE TABLE IF NOT EXISTS public.rewards_catalogue (
   reward_type TEXT NOT NULL DEFAULT 'general',
   icon TEXT DEFAULT '🎁',
   image_url TEXT,
+  stock INTEGER,
+  link TEXT,
   active BOOLEAN DEFAULT true,
   drop_rate INTEGER DEFAULT 10,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
@@ -137,6 +139,8 @@ CREATE TABLE IF NOT EXISTS public.rewards_redemptions (
   reward_type TEXT NOT NULL,
   reward_label TEXT NOT NULL,
   points_cost INTEGER NOT NULL,
+  xp_cost INTEGER,
+  catalogue_id UUID REFERENCES public.rewards_catalogue(id) ON DELETE SET NULL,
   redeemed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

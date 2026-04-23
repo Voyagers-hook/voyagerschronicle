@@ -96,7 +96,7 @@ export default function AdminPage() {
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const [rewardForm, setRewardForm] = useState<Partial<Reward>>({
     title: '', xp_cost: 100, reward_type: 'general', icon: '🎁',
-    drop_rate: 10, active: true
+    drop_rate: 10, active: true, description: '', stock: null, link: ''
   });
 
   // Quiz form state
@@ -174,7 +174,6 @@ export default function AdminPage() {
     } catch (err: any) {
       showToast('Upload failed: ' + err.message);
     }
-    showToast('Image uploaded! ✓');
   };
 
   // ── Send cards handler ─────────────────────────────────────────
@@ -208,27 +207,22 @@ export default function AdminPage() {
     const { error } = await supabase.from('user_cards').insert(rows);
     setSending(false);
     if (error) { showToast('Error sending cards: ' + error.message); return; }
-    showToast(`Sent ${batchSize} card${batchSize > 1 ? 's' : ''} to ${targets.length} member${targets.length > 1 ? 's' : ''}! ✓`);
-    showToast(`Sent ${batchSize} card(s) to ${targets.length} member(s)! ✓`);
+    showToast(`Sent ${batchSize} random card(s) to ${targets.length} member(s)! ✓`);
     setSelectedMembers([]);
   };
 
   // ── Card handlers ──────────────────────────────────────────────
   const saveCard = async () => {
     if (!cardForm.name?.trim()) return;
-    if (editingCard) {
-      const { error } = await supabase.from('cards').update(cardForm).eq('id', editingCard.id);
     const { id, ...payload } = cardForm;
 
     if (editingCard?.id) {
       const { error } = await supabase.from('cards').update(payload).eq('id', editingCard.id);
       if (error) { showToast('Error updating card'); return; }
-      setCards(prev => prev.map(c => c.id === editingCard.id ? { ...c, ...cardForm } as Card : c));
       setCards(prev => prev.map(c => c.id === editingCard.id ? { ...c, ...payload } as Card : c));
       showToast('Card updated! ✓');
     } else {
       const nextNum = cards.length > 0 ? Math.max(...cards.map(c => c.card_number)) + 1 : 1;
-      const { data, error } = await supabase.from('cards').insert({ ...cardForm, card_number: nextNum, total_cards: 24 }).select().single();
       const { data, error } = await supabase.from('cards').insert({ ...payload, card_number: nextNum, total_cards: 24 }).select().single();
       if (error) { showToast('Error adding card'); return; }
       setCards(prev => [...prev, data]);
@@ -648,7 +642,7 @@ export default function AdminPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-sans text-earth-400">{rewards.length} rewards available</p>
-              <button onClick={() => { setEditingReward(null); setRewardForm({ title: '', xp_cost: 100, reward_type: 'general', icon: '🎁', drop_rate: 10, active: true }); setShowRewardForm(true); }}
+              <button onClick={() => { setEditingReward(null); setRewardForm({ title: '', xp_cost: 100, reward_type: 'general', icon: '🎁', drop_rate: 10, active: true, description: '', stock: null, link: '' }); setShowRewardForm(true); }}
                 className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
                 <Icon name="PlusCircleIcon" size={16} /> Add Reward Item
               </button>
@@ -666,6 +660,7 @@ export default function AdminPage() {
                       <option value="general">General</option>
                       <option value="card-pack">Card Pack</option>
                       <option value="discount">Discount</option>
+                      <option value="external">External</option>
                     </select>
                   </div>
                   <div className="md:col-span-2 flex flex-col">
@@ -678,7 +673,10 @@ export default function AdminPage() {
                       </label>
                     </div>
                   </div>
+                  <div className="md:col-span-2"><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={rewardForm.description || ''} onChange={e => setRewardForm(p => ({ ...p, description: e.target.value }))} /></div>
                   <div><label className={labelCls}>Chance Weight</label><input type="number" className={inputCls} value={rewardForm.drop_rate || 10} onChange={e => setRewardForm(p => ({ ...p, drop_rate: Number(e.target.value) }))} /></div>
+                  <div><label className={labelCls}>Stock (Leave empty for unlimited)</label><input type="number" className={inputCls} value={rewardForm.stock || ''} onChange={e => setRewardForm(p => ({ ...p, stock: e.target.value ? Number(e.target.value) : null }))} /></div>
+                  <div className="md:col-span-2"><label className={labelCls}>External Link (Optional)</label><input className={inputCls} value={rewardForm.link || ''} onChange={e => setRewardForm(p => ({ ...p, link: e.target.value }))} /></div>
                 </div>
                 <div className="flex gap-3 mt-5">
                   <button onClick={saveReward} className={btnPrimary} style={{ backgroundColor: '#ff751f' }}><Icon name="CheckIcon" size={15} />Save Reward</button>
