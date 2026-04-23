@@ -21,7 +21,7 @@ export default function RewardsPage() {
   const { user } = useAuth();
   const [availableRewards, setAvailableRewards] = useState<Reward[]>([]);
   const [totalPoints, setTotalPoints] = useState(0);
-  const [redemptions, setRedemptions] = useState<{ reward_label: string; points_cost: number; redeemed_at: string }[]>([]);
+  const [redemptions, setRedemptions] = useState<{ reward_label: string; xp_cost: number; redeemed_at: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [redeeming, setRedeeming] = useState<string | null>(null);
 
