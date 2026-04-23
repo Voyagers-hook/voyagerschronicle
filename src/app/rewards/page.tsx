@@ -11,7 +11,7 @@ interface Reward {
   id: string;
   title: string;
   description: string;
-  xp_cost: number;
+  points_cost: number;
   reward_type: string;
   icon: string;
   image_url?: string;
@@ -31,8 +31,13 @@ export default function RewardsPage() {
     Promise.all([
       supabase.from('user_profiles').select('total_points').eq('id', user.id).single(),
       supabase.from('rewards_redemptions').select('reward_label, points_cost, redeemed_at').eq('user_id', user.id).order('redeemed_at', { ascending: false }).limit(5),
-      supabase.from('rewards_catalogue').select('*').eq('active', true).order('xp_cost', { ascending: true })
+      supabase.from('rewards_catalogue').select('*').eq('active', true).order('points_cost', { ascending: true })
     ]).then(([profResult, redsResult, rewardsResult]) => {
+      if (rewardsResult.error) {
+        console.error("Error fetching rewards:", rewardsResult.error);
+        toast.error("Could not load rewards catalogue");
+      }
+      
       if (profResult.data) setTotalPoints(profResult.data.total_points || 0);
       setRedemptions(redsResult.data || []);
       setAvailableRewards(rewardsResult.data || []);
@@ -41,8 +46,9 @@ export default function RewardsPage() {
   }, [user]);
 
   const handleRedeem = async (reward: Reward) => {
-    if (!user || totalPoints < reward.xp_cost) {
-      toast.error(`You need ${reward.xp_cost - totalPoints} more points to redeem this!`);
+    const cost = reward.points_cost;
+    if (!user || totalPoints < cost) {
+      toast.error(`You need ${cost - totalPoints} more points to redeem this!`);
       return;
     }
     setRedeeming(reward.id);
@@ -52,14 +58,14 @@ export default function RewardsPage() {
         user_id: user.id,
         reward_type: reward.reward_type,
         reward_label: reward.title,
-        points_cost: reward.xp_cost,
-        xp_cost: reward.xp_cost,
+        points_cost: cost,
+        xp_cost: cost,
         catalogue_id: reward.id,
       });
       if (error) throw error;
       // Deduct points
-      await supabase.from('user_profiles').update({ total_points: totalPoints - reward.xp_cost }).eq('id', user.id);
-      setTotalPoints(p => p - reward.xp_cost);
+      await supabase.from('user_profiles').update({ total_points: totalPoints - cost }).eq('id', user.id);
+      setTotalPoints(p => p - cost);
       toast.success(`${reward.title} redeemed! The Voyagers Hook team will be in touch.`);
       // Refresh redemptions
       const { data: reds } = await supabase.from('rewards_redemptions').select('reward_label, points_cost, redeemed_at').eq('user_id', user.id).order('redeemed_at', { ascending: false }).limit(5);
@@ -101,7 +107,7 @@ export default function RewardsPage() {
         {/* Rewards grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {availableRewards.map((reward) => {
-            const canAfford = totalPoints >= reward.xp_cost;
+            const canAfford = totalPoints >= reward.points_cost;
             return (
               <div key={reward.id} className={`bg-white rounded-3xl border border-adventure-border shadow-card p-5 flex flex-col card-lift ${!canAfford ? 'opacity-75' : ''}`}>
                 <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center mb-4">
@@ -116,7 +122,7 @@ export default function RewardsPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <Icon name="StarIcon" size={14} className="text-amber-500" />
-                    <span className="font-display text-lg text-primary-800 tabular-nums">{reward.xp_cost.toLocaleString()}</span>
+                    <span className="font-display text-lg text-primary-800 tabular-nums">{reward.points_cost.toLocaleString()}</span>
                     <span className="text-xs font-sans text-earth-400">pts</span>
                   </div>
                   <button
@@ -130,7 +136,7 @@ export default function RewardsPage() {
                     ) : (
                       <Icon name="GiftIcon" size={14} />
                     )}
-                    {canAfford ? 'Redeem' : `Need ${(reward.xp_cost - totalPoints).toLocaleString()} more`}
+                    {canAfford ? 'Redeem' : `Need ${(reward.points_cost - totalPoints).toLocaleString()} more`}
                   </button>
                 </div>
               </div>
