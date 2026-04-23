@@ -14,7 +14,7 @@ const RARITY_COLORS: Record<string, string> = {
   Specimen:   'bg-blue-100 text-blue-700 border-blue-300',
   Legendary:  'bg-amber-100 text-amber-700 border-amber-300',
 };
-const ICON_OPTIONS = ['EyeIcon','SparklesIcon','ClockIcon','MoonIcon','HeartIcon','BeakerIcon','MagnifyingGlassIcon','AcademicCapIcon','StarIcon','FireIcon','BoltIcon','GlobeAltIcon','ShieldCheckIcon','LightBulbIcon'];
+const ICON_OPTIONS = ['GiftIcon', 'TagIcon', 'TrophyIcon', 'StarIcon', 'SparklesIcon', 'EyeIcon', 'ClockIcon', 'MoonIcon', 'HeartIcon', 'BeakerIcon', 'MagnifyingGlassIcon', 'AcademicCapIcon', 'FireIcon', 'BoltIcon', 'GlobeAltIcon', 'ShieldCheckIcon', 'LightBulbIcon'];
 
 const inputCls = 'w-full border border-adventure-border rounded-xl px-4 py-2.5 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white';
 const labelCls = 'block text-xs font-sans font-semibold text-earth-500 uppercase tracking-wide mb-1';
@@ -222,8 +222,11 @@ export default function AdminPage() {
       setCards(prev => prev.map(c => c.id === editingCard.id ? { ...c, ...payload } as Card : c));
       showToast('Card updated! ✓');
     } else {
-      const nextNum = cards.length > 0 ? Math.max(...cards.map(c => c.card_number)) + 1 : 1;
-      const { data, error } = await supabase.from('cards').insert({ ...payload, card_number: nextNum, total_cards: 24 }).select().single();
+      // Ensure we don't send an empty ID or stray fields
+      const { id: _unused, ...cleanPayload } = payload as any;
+      const lastNum = cards.reduce((max, c) => Math.max(max, c.card_number), 0);
+      const nextNum = lastNum + 1;
+      const { data, error } = await supabase.from('cards').insert({ ...cleanPayload, card_number: nextNum, total_cards: 24 }).select().single();
       if (error) { showToast('Error adding card'); return; }
       setCards(prev => [...prev, data]);
       showToast('Card added! ✓');
@@ -246,13 +249,13 @@ export default function AdminPage() {
 
     if (editingReward?.id) {
       const { error } = await supabase.from('rewards_catalogue').update(payload).eq('id', editingReward.id);
-      if (error) { showToast('Error updating reward'); return; }
+      if (error) { showToast('Error: ' + error.message); return; }
       // Update local state with the saved data
       setRewards(prev => prev.map(r => r.id === editingReward.id ? { ...r, ...payload } as Reward : r));
       showToast('Reward updated! ✓');
     } else {
-      const { data, error } = await supabase.from('rewards_catalogue').insert([payload]).select().single();
-      if (error) { showToast('Error adding reward'); return; }
+      const { data, error } = await supabase.from('rewards_catalogue').insert(payload).select().single();
+      if (error) { showToast('Error: ' + error.message); return; }
       setRewards(prev => [...prev, data]);
       showToast('Reward added! ✓');
     }
@@ -261,7 +264,7 @@ export default function AdminPage() {
 
   const deleteReward = async (id: string) => {
     const { error } = await supabase.from('rewards_catalogue').delete().eq('id', id);
-    if (error) { showToast('Error deleting reward'); return; }
+    if (error) { showToast('Error: ' + error.message); return; }
     setRewards(prev => prev.filter(r => r.id !== id));
     showToast('Reward deleted.');
   };
@@ -581,11 +584,14 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div>
-                    <label className={labelCls}>Probability Scale (1-100)</label>
-                    <label className={labelCls}>Probability Weight (1-100)</label>
                     <label className={labelCls}>Chance Weight (1-100)</label>
-                    <input type="number" className={inputCls} value={cardForm.probability_weight || 10} onChange={e => setCardForm(p => ({ ...p, probability_weight: Number(e.target.value) }))} />
-                    <p className="text-[10px] text-earth-400 mt-1 italic">Higher weight = more common (e.g. 10 vs 90).</p>
+                    <input 
+                      type="number" 
+                      className={inputCls} 
+                      value={cardForm.drop_rate || 10} 
+                      onChange={e => setCardForm(p => ({ ...p, drop_rate: Number(e.target.value) }))} 
+                    />
+                    <p className="text-[10px] text-earth-400 mt-1 italic">Determines how often this card appears in random packs.</p>
                   </div>
                   <div className="md:col-span-2"><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={cardForm.description || ''} onChange={e => setCardForm(p => ({ ...p, description: e.target.value }))} /></div>
                   {(['power', 'stealth', 'stamina', 'beauty'] as const).map(stat => (
@@ -671,6 +677,18 @@ export default function AdminPage() {
                       <option value="discount">Discount</option>
                       <option value="external">External</option>
                     </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Icon</label>
+                    <select className={inputCls} value={rewardForm.icon} onChange={e => setRewardForm(p => ({ ...p, icon: e.target.value }))}>
+                      {ICON_OPTIONS.map(opt => <option key={opt} value={opt}>{opt.replace('Icon', '')}</option>)}
+                    </select>
+                  </div>
+                  <div className="md:col-span-2 flex flex-col">
+                    <label className={labelCls}>
+                      <input type="checkbox" className="mr-2" checked={rewardForm.active} onChange={e => setRewardForm(p => ({ ...p, active: e.target.checked }))} />
+                      Active (Visible to members)
+                    </label>
                   </div>
                   <div className="md:col-span-2 flex flex-col">
                     <label className={labelCls}>Image</label>
