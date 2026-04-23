@@ -212,6 +212,16 @@ export default function AdminRewardsPage() {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     placeholder="https://example.com/my-card-image.png"
                   />
+                  {form.image_url && (
+                    <div className="mt-2 relative w-full h-32 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                      <img 
+                        src={form.image_url} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => (e.currentTarget.style.display = 'none')}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Description */}
@@ -263,7 +273,7 @@ export default function AdminRewardsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Drop Chance (%)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Probability Scale (%)</label>
                     <input
                       type="number" min={1} max={100} value={form.probability_weight}
                       onChange={e => setForm(f => ({ ...f, probability_weight: Number(e.target.value) }))}

@@ -6,6 +6,7 @@ import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 
 type AdminTab = 'catch-submissions' | 'send-cards' | 'cards' | 'quiz-manager' | 'fun-facts' | 'fishing-tips';
+type AdminTab = 'catch-submissions' | 'send-cards' | 'cards' | 'rewards' | 'quiz-manager' | 'fun-facts' | 'fishing-tips';
 
 const RARITIES = ['Widespread', 'Elusive', 'Specimen', 'Legendary'] as const;
 const RARITY_COLORS: Record<string, string> = {
@@ -33,6 +34,13 @@ interface Card {
   rarity: typeof RARITIES[number]; power: number; stealth: number;
   stamina: number; beauty: number; habitat: string; description: string | null;
   image_url: string | null; gradient: string; border_color: string; foil: boolean;
+  probability_weight?: number;
+}
+interface Reward {
+  id: string; title: string; description: string | null; points_cost: number;
+  reward_type: string; icon: string; image_url: string | null;
+  probability_weight: number; active: boolean; stock: number | null;
+  link: string | null;
 }
 interface Member {
   id: string; username: string; email: string; level: number;
@@ -60,6 +68,7 @@ export default function AdminPage() {
   // Data state
   const [submissions, setSubmissions] = useState<CatchSubmission[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
+  const [rewards, setRewards] = useState<Reward[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [facts, setFacts] = useState<FunFact[]>([]);
@@ -79,6 +88,15 @@ export default function AdminPage() {
     name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50,
     stamina: 50, beauty: 50, habitat: '', description: '',
     gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6',
+    image_url: '', probability_weight: 10
+  });
+
+  // Reward form state
+  const [showRewardForm, setShowRewardForm] = useState(false);
+  const [editingReward, setEditingReward] = useState<Reward | null>(null);
+  const [rewardForm, setRewardForm] = useState<Partial<Reward>>({
+    title: '', points_cost: 100, reward_type: 'general', icon: '🎁', 
+    probability_weight: 10, active: true 
   });
 
   // Quiz form state
@@ -102,8 +120,10 @@ export default function AdminPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     const [subsRes, cardsRes, membersRes, qRes, factsRes, tipsRes] = await Promise.all([
+    const [subsRes, cardsRes, rewardsRes, membersRes, qRes, factsRes, tipsRes] = await Promise.all([
       supabase.from('catch_submissions').select('*, user_profiles(username)').order('submitted_at', { ascending: false }),
       supabase.from('cards').select('*').order('card_number'),
+      supabase.from('rewards_catalogue').select('*').order('created_at'),
       supabase.from('user_profiles').select('id, username, email, level, membership_tier, total_points').eq('role', 'member'),
       supabase.from('quiz_questions').select('*').order('created_at'),
       supabase.from('fun_facts').select('*').order('created_at'),
@@ -112,6 +132,7 @@ export default function AdminPage() {
 
     if (subsRes.data) setSubmissions(subsRes.data.map((s: any) => ({ ...s, username: s.user_profiles?.username })));
     if (cardsRes.data) setCards(cardsRes.data);
+    if (rewardsRes.data) setRewards(rewardsRes.data);
     if (membersRes.data) setMembers(membersRes.data);
     if (qRes.data) setQuestions(qRes.data);
     if (factsRes.data) setFacts(factsRes.data);
@@ -175,6 +196,23 @@ export default function AdminPage() {
     if (error) { showToast('Error deleting card'); return; }
     setCards(prev => prev.filter(c => c.id !== id));
     showToast('Card deleted.');
+  };
+
+  // ── Reward handlers ──────────────────────────────────────────
+  const saveReward = async () => {
+    if (!rewardForm.title?.trim()) return;
+    if (editingReward) {
+      const { error } = await supabase.from('rewards_catalogue').update(rewardForm).eq('id', editingReward.id);
+      if (error) { showToast('Error updating reward'); return; }
+      setRewards(prev => prev.map(r => r.id === editingReward.id ? { ...r, ...rewardForm } as Reward : r));
+      showToast('Reward updated! ✓');
+    } else {
+      const { data, error } = await supabase.from('rewards_catalogue').insert([rewardForm]).select().single();
+      if (error) { showToast('Error adding reward'); return; }
+      setRewards(prev => [...prev, data]);
+      showToast('Reward added! ✓');
+    }
+    setShowRewardForm(false); setEditingReward(null);
   };
 
   // ── Quiz handlers ──────────────────────────────────────────────
@@ -268,6 +306,7 @@ export default function AdminPage() {
     { key: 'catch-submissions', label: 'Submissions',  iconName: 'ClipboardDocumentListIcon', badge: pendingCount },
     { key: 'send-cards',        label: 'Send Cards',   iconName: 'GiftIcon' },
     { key: 'cards',             label: 'Cards',        iconName: 'BookOpenIcon' },
+    { key: 'rewards',           label: 'Rewards',      iconName: 'StarIcon' },
     { key: 'quiz-manager',      label: 'Quiz',         iconName: 'AcademicCapIcon' },
     { key: 'fun-facts',         label: 'Fun Facts',    iconName: 'LightBulbIcon' },
     { key: 'fishing-tips',      label: 'Fishing Tips', iconName: 'BookmarkIcon' },
@@ -449,6 +488,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <p className="text-sm font-sans text-earth-400">{cards.length} cards in collection</p>
               <button onClick={() => { setEditingCard(null); setCardForm({ name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50, stamina: 50, beauty: 50, habitat: '', description: '', gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6' }); setShowCardForm(true); }}
+              <button onClick={() => { setEditingCard(null); setCardForm({ name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50, stamina: 50, beauty: 50, habitat: '', description: '', gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6', image_url: '', probability_weight: 10 }); setShowCardForm(true); }}
                 className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
                 <Icon name="PlusCircleIcon" size={16} /> Add New Card
               </button>
@@ -467,6 +507,14 @@ export default function AdminPage() {
                     </select>
                   </div>
                   <div><label className={labelCls}>Habitat</label><input className={inputCls} value={cardForm.habitat || ''} onChange={e => setCardForm(p => ({ ...p, habitat: e.target.value }))} /></div>
+                  <div className="md:col-span-2">
+                    <label className={labelCls}>Image URL</label>
+                    <input className={inputCls} placeholder="https://..." value={cardForm.image_url || ''} onChange={e => setCardForm(p => ({ ...p, image_url: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Probability Scale (1-100)</label>
+                    <input type="number" className={inputCls} value={cardForm.probability_weight || 10} onChange={e => setCardForm(p => ({ ...p, probability_weight: Number(e.target.value) }))} />
+                  </div>
                   <div className="md:col-span-2"><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={cardForm.description || ''} onChange={e => setCardForm(p => ({ ...p, description: e.target.value }))} /></div>
                   {(['power', 'stealth', 'stamina', 'beauty'] as const).map(stat => (
                     <div key={stat}>
@@ -522,6 +570,66 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── REWARDS ── */}
+        {tab === 'rewards' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-sans text-earth-400">{rewards.length} rewards available</p>
+              <button onClick={() => { setEditingReward(null); setRewardForm({ title: '', points_cost: 100, reward_type: 'general', icon: '🎁', probability_weight: 10, active: true }); setShowRewardForm(true); }}
+                className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
+                <Icon name="PlusCircleIcon" size={16} /> Add Reward Item
+              </button>
+            </div>
+
+            {showRewardForm && (
+              <div className="bg-white rounded-2xl border border-adventure-border shadow-card p-6 fade-in">
+                <h3 className="font-display text-xl text-primary-800 mb-5">{editingReward ? 'Edit Reward' : 'New Reward Item'}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><label className={labelCls}>Reward Title</label><input className={inputCls} value={rewardForm.title || ''} onChange={e => setRewardForm(p => ({ ...p, title: e.target.value }))} /></div>
+                  <div><label className={labelCls}>Points Cost</label><input type="number" className={inputCls} value={rewardForm.points_cost || 0} onChange={e => setRewardForm(p => ({ ...p, points_cost: Number(e.target.value) }))} /></div>
+                  <div>
+                    <label className={labelCls}>Type</label>
+                    <select className={inputCls} value={rewardForm.reward_type} onChange={e => setRewardForm(p => ({ ...p, reward_type: e.target.value }))}>
+                      <option value="general">General</option>
+                      <option value="card-pack">Card Pack</option>
+                      <option value="discount">Discount</option>
+                    </select>
+                  </div>
+                  <div><label className={labelCls}>Probability Scale (%)</label><input type="number" className={inputCls} value={rewardForm.probability_weight || 10} onChange={e => setRewardForm(p => ({ ...p, probability_weight: Number(e.target.value) }))} /></div>
+                  <div className="md:col-span-2"><label className={labelCls}>Image URL</label><input className={inputCls} value={rewardForm.image_url || ''} onChange={e => setRewardForm(p => ({ ...p, image_url: e.target.value }))} /></div>
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <button onClick={saveReward} className={btnPrimary} style={{ backgroundColor: '#ff751f' }}><Icon name="CheckIcon" size={15} />Save Reward</button>
+                  <button onClick={() => setShowRewardForm(false)} className={btnGhost}>Cancel</button>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {rewards.map(reward => (
+                <div key={reward.id} className="bg-white rounded-2xl border border-adventure-border p-4 shadow-sm">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      {reward.image_url ? (
+                        <img src={reward.image_url} className="w-12 h-12 rounded-lg object-cover border" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center text-2xl">{reward.icon}</div>
+                      )}
+                      <div>
+                        <p className="font-semibold text-primary-800 text-sm">{reward.title}</p>
+                        <p className="text-xs text-earth-400">{reward.points_cost} Points · {reward.probability_weight}% Chance</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => { setEditingReward(reward); setRewardForm({...reward}); setShowRewardForm(true); }} className="p-1.5 text-earth-400 hover:text-primary-600"><Icon name="PencilSquareIcon" size={15} /></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
