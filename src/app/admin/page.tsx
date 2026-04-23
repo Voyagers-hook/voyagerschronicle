@@ -33,7 +33,7 @@ interface Card {
   rarity: typeof RARITIES[number]; power: number; stealth: number;
   energy: number; beauty: number; habitat: string; description: string | null;
   image_url: string | null; gradient: string; border_color: string; foil: boolean;
-  drop_rate: number;
+  probability_weight: number;
 }
 interface Reward {
   id: string; title: string; description: string | null;
@@ -88,7 +88,7 @@ export default function AdminPage() {
     name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50,
     energy: 50, beauty: 50, habitat: '', description: '', foil: false, // Added default for foil
     gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6',
-    image_url: '', drop_rate: 10
+    image_url: '', probability_weight: 10
   });
 
   // Reward form state
@@ -195,7 +195,7 @@ export default function AdminPage() {
     if (targets.length === 0) { showToast('Select at least one member.'); return; }
 
     setSending(true);
-    const totalWeight = pool.reduce((sum, c) => sum + (c.drop_rate ?? 10), 0);
+    const totalWeight = pool.reduce((sum, c) => sum + (c._rate ?? 10), 0);
     const rows: { user_id: string; card_id: string }[] = [];
 
     for (const member of targets) {
@@ -203,7 +203,7 @@ export default function AdminPage() {
         let rVal = Math.random() * totalWeight;
         let selectedCard = pool[0];
         for (const card of pool) {
-          const weight = card.drop_rate ?? 10;
+          const weight = card.probability_weight ?? 10;
           if (rVal < weight) {
             selectedCard = card;
             break;
@@ -563,7 +563,7 @@ export default function AdminPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <p className="text-sm font-sans text-earth-400">{cards.length} cards in collection</p>
-              <button onClick={() => { setEditingCard(null); setCardForm({ name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50, energy: 50, beauty: 50, habitat: '', description: '', foil: false, gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6', image_url: '', drop_rate: 10 }); setShowCardForm(true); }}
+              <button onClick={() => { setEditingCard(null); setCardForm({ name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50, energy: 50, beauty: 50, habitat: '', description: '', foil: false, gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6', image_url: '', probability_weight: 10 }); setShowCardForm(true); }}
                 className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
                 <Icon name="PlusCircleIcon" size={16} /> Add New Card
               </button>
@@ -597,8 +597,8 @@ export default function AdminPage() {
                     <input 
                       type="number" 
                       className={inputCls} 
-                      value={cardForm.drop_rate || 10} 
-                      onChange={e => setCardForm(p => ({ ...p, drop_rate: Number(e.target.value) }))} 
+                      value={cardForm.probability_weight || 10} 
+                      onChange={e => setCardForm(p => ({ ...p, probability_weight: Number(e.target.value) }))} 
                     />
                     <p className="text-[10px] text-earth-400 mt-1 italic">Determines how often this card appears in random packs.</p>
                   </div>
@@ -677,7 +677,7 @@ export default function AdminPage() {
                 <h3 className="font-display text-xl text-primary-800 mb-5">{editingReward ? 'Edit Reward' : 'New Reward Item'}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div><label className={labelCls}>Reward Title</label><input className={inputCls} value={rewardForm.title || ''} onChange={e => setRewardForm(p => ({ ...p, title: e.target.value }))} /></div>
-                  <div><label className={labelCls}>Points Cost</label><input type="number" className={inputCls} value={rewardForm.xp_cost || 0} onChange={e => setRewardForm(p => ({ ...p, xp_cost: Number(e.target.value) }))} /></div>
+                  <div><label className={labelCls}>XP Cost</label><input type="number" className={inputCls} value={rewardForm.xp_cost || 0} onChange={e => setRewardForm(p => ({ ...p, xp_cost: Number(e.target.value) }))} /></div>
                   <div>
                     <label className={labelCls}>Type</label>
                     <select className={inputCls} value={rewardForm.reward_type} onChange={e => setRewardForm(p => ({ ...p, reward_type: e.target.value }))}>
