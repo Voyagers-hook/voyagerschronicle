@@ -241,11 +241,13 @@ export default function AdminPage() {
   // ── Reward handlers ──────────────────────────────────────────
   const saveReward = async () => {
     if (!rewardForm.title?.trim()) return;
-    const { id, ...payload } = rewardForm;
+    // Remove id from payload to prevent Supabase from trying to insert/update it manually
+    const { id: _, ...payload } = rewardForm;
 
     if (editingReward?.id) {
       const { error } = await supabase.from('rewards_catalogue').update(payload).eq('id', editingReward.id);
       if (error) { showToast('Error updating reward'); return; }
+      // Update local state with the saved data
       setRewards(prev => prev.map(r => r.id === editingReward.id ? { ...r, ...payload } as Reward : r));
       showToast('Reward updated! ✓');
     } else {
@@ -697,13 +699,18 @@ export default function AdminPage() {
                       )}
                       <div>
                         <p className="font-semibold text-primary-800 text-sm">{reward.title}</p>
-                        <p className="text-xs text-earth-400">{reward.xp_cost} XP · {reward.drop_rate}% Chance</p>
+                        <p className="text-xs text-earth-400">
+                          {reward.xp_cost} XP · {reward.drop_rate}% Chance
+                          {reward.stock !== null && ` · Stock: ${reward.stock}`}
+                        </p>
                       </div>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex items-center gap-1">
+                      <span className={`w-2 h-2 rounded-full ${reward.active ? 'bg-green-500' : 'bg-red-500'}`} title={reward.active ? 'Active' : 'Inactive'} />
                       <button onClick={() => { setEditingReward(reward); setRewardForm({...reward}); setShowRewardForm(true); }} className="p-1.5 text-earth-400 hover:text-primary-600"><Icon name="PencilSquareIcon" size={15} /></button>
                     </div>
                   </div>
+                  {reward.description && <p className="text-xs text-earth-500 line-clamp-2 mt-1">{reward.description}</p>}
                 </div>
               ))}
             </div>
