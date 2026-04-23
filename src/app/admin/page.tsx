@@ -31,7 +31,7 @@ interface CatchSubmission {
 interface Card {
   id: string; card_number: number; name: string; species: string;
   rarity: typeof RARITIES[number]; power: number; stealth: number;
-  stamina: number; beauty: number; habitat: string; description: string | null;
+  energy: number; beauty: number; habitat: string; description: string | null;
   image_url: string | null; gradient: string; border_color: string; foil: boolean;
   drop_rate: number;
 }
@@ -86,7 +86,7 @@ export default function AdminPage() {
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [cardForm, setCardForm] = useState<Partial<Card>>({
     name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50,
-    stamina: 50, beauty: 50, habitat: '', description: '', foil: false, // Added default for foil
+    energy: 50, beauty: 50, habitat: '', description: '', foil: false, // Added default for foil
     gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6',
     image_url: '', drop_rate: 10
   });
@@ -563,7 +563,7 @@ export default function AdminPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <p className="text-sm font-sans text-earth-400">{cards.length} cards in collection</p>
-              <button onClick={() => { setEditingCard(null); setCardForm({ name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50, stamina: 50, beauty: 50, habitat: '', description: '', foil: false, gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6', image_url: '', drop_rate: 10 }); setShowCardForm(true); }}
+              <button onClick={() => { setEditingCard(null); setCardForm({ name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50, energy: 50, beauty: 50, habitat: '', description: '', foil: false, gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6', image_url: '', drop_rate: 10 }); setShowCardForm(true); }}
                 className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
                 <Icon name="PlusCircleIcon" size={16} /> Add New Card
               </button>
@@ -603,7 +603,7 @@ export default function AdminPage() {
                     <p className="text-[10px] text-earth-400 mt-1 italic">Determines how often this card appears in random packs.</p>
                   </div>
                   <div className="md:col-span-2"><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={cardForm.description || ''} onChange={e => setCardForm(p => ({ ...p, description: e.target.value }))} /></div>
-                  {(['power', 'stealth', 'stamina', 'beauty'] as const).map(stat => (
+                  {(['power', 'stealth', 'energy', 'beauty'] as const).map(stat => (
                     <div key={stat}>
                       <label className={labelCls}>{stat.charAt(0).toUpperCase() + stat.slice(1)} <span className="text-primary-500 font-bold">{cardForm[stat]}</span></label>
                       <input type="range" min={1} max={100} value={cardForm[stat] || 50} onChange={e => setCardForm(p => ({ ...p, [stat]: Number(e.target.value) }))} className="w-full accent-orange-500" />
@@ -644,7 +644,7 @@ export default function AdminPage() {
                         <td className="px-4 py-3"><span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${RARITY_COLORS[card.rarity]}`}>{card.rarity}</span></td>
                         <td className="px-3 py-3 text-center font-display text-primary-700">{card.power}</td>
                         <td className="px-3 py-3 text-center font-display text-primary-700">{card.stealth}</td>
-                        <td className="px-3 py-3 text-center font-display text-primary-700">{card.stamina}</td>
+                        <td className="px-3 py-3 text-center font-display text-primary-700">{card.energy}</td>
                         <td className="px-3 py-3 text-center font-display text-primary-700">{card.beauty}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
