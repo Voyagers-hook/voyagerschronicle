@@ -8,11 +8,10 @@ interface Reward {
   id?: string;
   title: string;
   description: string | null;
-  points_cost: number;
+  xp_cost: number;
   reward_type: string;
   icon: string;
   image_url: string | null;
-  probability_weight: number;
   active: boolean;
   stock: number | null;
   link: string | null;
@@ -32,11 +31,10 @@ const ICONS = ['🎁', '🏆', '🎣', '🐟', '⚓', '🌊', '🎯', '💎', '�
 const emptyReward = (): Omit<Reward, 'id'> => ({
   title: '',
   description: '',
-  points_cost: 100,
+  xp_cost: 100,
   reward_type: 'general',
   icon: '🎁',
   image_url: '',
-  probability_weight: 10,
   active: true,
   stock: null,
   link: '',
@@ -80,7 +78,7 @@ export default function AdminRewardsPage() {
 
   async function handleSave() {
     if (!form.title.trim()) { toast.error('Title is required'); return; }
-    if (!form.points_cost || form.points_cost < 1) { toast.error('Points cost must be at least 1'); return; }
+    if (!form.xp_cost || form.xp_cost < 1) { toast.error('XP cost must be at least 1'); return; }
 
     setSaving(true);
     const supabase = createClient();
@@ -265,19 +263,11 @@ export default function AdminRewardsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Points Cost *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">XP Cost *</label>
                     <input
-                      type="number" min={1} value={form.points_cost}
-                      onChange={e => setForm(f => ({ ...f, points_cost: Number(e.target.value) }))}
+                      type="number" min={1} value={form.xp_cost}
+                      onChange={e => setForm(f => ({ ...f, xp_cost: Number(e.target.value) }))}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Probability Scale (%)</label>
-                    <input
-                      type="number" min={1} max={100} value={form.probability_weight}
-                      onChange={e => setForm(f => ({ ...f, probability_weight: Number(e.target.value) }))}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                 </div>
@@ -378,7 +368,7 @@ export default function AdminRewardsPage() {
 
                     <div className="flex items-center gap-3 mb-3">
                       <div className="flex items-center gap-1.5 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
-                        <span>⭐</span> {reward.points_cost} Pts
+                        <span>⭐</span> {reward.xp_cost} XP
                       </div>
                       {reward.stock !== null && (
                         <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
@@ -390,9 +380,6 @@ export default function AdminRewardsPage() {
                           <span>🔗</span> Link
                         </div>
                       )}
-                      <div className="flex items-center gap-1 bg-orange-50 text-orange-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
-                        <span>🎲</span> {reward.probability_weight}%
-                      </div>
                     </div>
 
                     {reward.link && (

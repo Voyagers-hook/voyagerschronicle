@@ -30,7 +30,7 @@ export default function RewardsPage() {
     const supabase = createClient();
     Promise.all([
       supabase.from('user_profiles').select('total_points').eq('id', user.id).single(),
-      supabase.from('rewards_redemptions').select('reward_label, points_cost, redeemed_at').eq('user_id', user.id).order('redeemed_at', { ascending: false }).limit(5),
+      supabase.from('rewards_redemptions').select('reward_label, xp_cost, redeemed_at').eq('user_id', user.id).order('redeemed_at', { ascending: false }).limit(5),
       supabase.from('rewards_catalogue').select('*').eq('active', true).order('xp_cost', { ascending: true })
     ]).then(([profResult, redsResult, rewardsResult]) => {
       if (rewardsResult.error) {
@@ -58,7 +58,6 @@ export default function RewardsPage() {
         user_id: user.id,
         reward_type: reward.reward_type,
         reward_label: reward.title,
-        points_cost: cost,
         xp_cost: cost,
         catalogue_id: reward.id,
       });
@@ -68,7 +67,7 @@ export default function RewardsPage() {
       setTotalPoints(p => p - cost);
       toast.success(`${reward.title} redeemed! The Voyagers Hook team will be in touch.`);
       // Refresh redemptions
-      const { data: reds } = await supabase.from('rewards_redemptions').select('reward_label, points_cost, redeemed_at').eq('user_id', user.id).order('redeemed_at', { ascending: false }).limit(5);
+      const { data: reds } = await supabase.from('rewards_redemptions').select('reward_label, xp_cost, redeemed_at').eq('user_id', user.id).order('redeemed_at', { ascending: false }).limit(5);
       setRedemptions(reds || []);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Redemption failed');
@@ -123,7 +122,7 @@ export default function RewardsPage() {
                   <div className="flex items-center gap-1.5">
                     <Icon name="StarIcon" size={14} className="text-amber-500" />
                     <span className="font-display text-lg text-primary-800 tabular-nums">{reward.xp_cost.toLocaleString()}</span>
-                    <span className="text-xs font-sans text-earth-400">pts</span>
+                    <span className="text-xs font-sans text-earth-400">XP</span>
                   </div>
                   <button
                     onClick={() => handleRedeem(reward)}
@@ -158,7 +157,7 @@ export default function RewardsPage() {
                     <p className="font-sans font-semibold text-primary-800 text-sm">{r.reward_label}</p>
                     <p className="text-xs font-sans text-earth-400">{new Date(r.redeemed_at).toLocaleDateString('en-AU')}</p>
                   </div>
-                  <span className="text-xs font-sans font-bold text-amber-600 flex-shrink-0">-{r.points_cost} pts</span>
+                  <span className="text-xs font-sans font-bold text-amber-600 flex-shrink-0">-{r.xp_cost} XP</span>
                 </div>
               ))}
             </div>

@@ -37,9 +37,8 @@ interface Card {
 }
 interface Reward {
   id: string; title: string; description: string | null;
-  points_cost: number; reward_type: string; icon: string; image_url: string | null;
+  xp_cost: number; reward_type: string; icon: string; image_url: string | null;
   active: boolean; stock: number | null; link: string | null;
-  probability_weight: number;
 }
 interface Member {
   id: string; username: string; email: string; level: number;
@@ -95,8 +94,8 @@ export default function AdminPage() {
   const [showRewardForm, setShowRewardForm] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const [rewardForm, setRewardForm] = useState<Partial<Reward>>({
-    title: '', points_cost: 100, reward_type: 'general', icon: 'GiftIcon',
-    active: true, probability_weight: 10, description: '', stock: null, link: ''
+    title: '', xp_cost: 100, reward_type: 'general', icon: 'GiftIcon',
+    active: true, description: '', stock: null, link: ''
   });
 
   // Quiz form state
@@ -122,7 +121,7 @@ export default function AdminPage() {
     const [subsRes, cardsRes, rewardsRes, membersRes, qRes, factsRes, tipsRes] = await Promise.all([
       supabase.from('catch_submissions').select('*, user_profiles(username)').order('submitted_at', { ascending: false }),
       supabase.from('cards').select('*').order('card_number'),
-      supabase.from('rewards_catalogue').select('*').order('points_cost', { ascending: true }),
+      supabase.from('rewards_catalogue').select('*').order('xp_cost', { ascending: true }),
       supabase.from('user_profiles').select('id, username, email, level, membership_tier, total_points').eq('role', 'member'),
       supabase.from('quiz_questions').select('*').order('created_at'),
       supabase.from('fun_facts').select('*').order('created_at'),
@@ -666,7 +665,7 @@ export default function AdminPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-sans text-earth-400">{rewards.length} rewards available</p>
-              <button onClick={() => { setEditingReward(null); setRewardForm({ title: '', points_cost: 100, reward_type: 'general', icon: 'GiftIcon', probability_weight: 10, active: true, description: '', stock: null, link: '' }); setShowRewardForm(true); }}
+              <button onClick={() => { setEditingReward(null); setRewardForm({ title: '', xp_cost: 100, reward_type: 'general', icon: 'GiftIcon', active: true, description: '', stock: null, link: '' }); setShowRewardForm(true); }}
                 className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
                 <Icon name="PlusCircleIcon" size={16} /> Add Reward Item
               </button>
@@ -677,7 +676,7 @@ export default function AdminPage() {
                 <h3 className="font-display text-xl text-primary-800 mb-5">{editingReward ? 'Edit Reward' : 'New Reward Item'}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div><label className={labelCls}>Reward Title</label><input className={inputCls} value={rewardForm.title || ''} onChange={e => setRewardForm(p => ({ ...p, title: e.target.value }))} /></div>
-                  <div><label className={labelCls}>Points Cost</label><input type="number" className={inputCls} value={rewardForm.points_cost || 0} onChange={e => setRewardForm(p => ({ ...p, points_cost: Number(e.target.value) }))} /></div>
+                  <div><label className={labelCls}>XP Cost</label><input type="number" className={inputCls} value={rewardForm.xp_cost || 0} onChange={e => setRewardForm(p => ({ ...p, xp_cost: Number(e.target.value) }))} /></div>
                   <div>
                     <label className={labelCls}>Type</label>
                     <select className={inputCls} value={rewardForm.reward_type} onChange={e => setRewardForm(p => ({ ...p, reward_type: e.target.value }))}>
@@ -709,7 +708,6 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="md:col-span-2"><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={rewardForm.description || ''} onChange={e => setRewardForm(p => ({ ...p, description: e.target.value }))} /></div>
-                  <div><label className={labelCls}>Chance Weight (%)</label><input type="number" className={inputCls} value={rewardForm.probability_weight || 10} onChange={e => setRewardForm(p => ({ ...p, probability_weight: Number(e.target.value) }))} /></div>
                   <div><label className={labelCls}>Stock (Leave empty for unlimited)</label><input type="number" className={inputCls} value={rewardForm.stock || ''} onChange={e => setRewardForm(p => ({ ...p, stock: e.target.value ? Number(e.target.value) : null }))} /></div>
                   <div className="md:col-span-2"><label className={labelCls}>External Link (Optional)</label><input className={inputCls} value={rewardForm.link || ''} onChange={e => setRewardForm(p => ({ ...p, link: e.target.value }))} /></div>
                 </div>
@@ -735,7 +733,7 @@ export default function AdminPage() {
                       <div>
                         <p className="font-semibold text-primary-800 text-sm">{reward.title}</p>
                         <p className="text-xs text-earth-400">
-                          {reward.points_cost} Pts · {reward.probability_weight}% Chance
+                          {reward.xp_cost} XP
                           {reward.stock !== null && ` · Stock: ${reward.stock}`}
                         </p>
                       </div>
