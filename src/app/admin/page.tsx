@@ -5,7 +5,6 @@ import AppLayout from '@/components/AppLayout';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 
-type AdminTab = 'catch-submissions' | 'send-cards' | 'cards' | 'quiz-manager' | 'fun-facts' | 'fishing-tips';
 type AdminTab = 'catch-submissions' | 'send-cards' | 'cards' | 'rewards' | 'quiz-manager' | 'fun-facts' | 'fishing-tips';
 
 const RARITIES = ['Widespread', 'Elusive', 'Specimen', 'Legendary'] as const;
@@ -119,7 +118,6 @@ export default function AdminPage() {
   // ── Data fetching ──────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [subsRes, cardsRes, membersRes, qRes, factsRes, tipsRes] = await Promise.all([
     const [subsRes, cardsRes, rewardsRes, membersRes, qRes, factsRes, tipsRes] = await Promise.all([
       supabase.from('catch_submissions').select('*, user_profiles(username)').order('submitted_at', { ascending: false }),
       supabase.from('cards').select('*').order('card_number'),
