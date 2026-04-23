@@ -95,7 +95,7 @@ export default function AdminPage() {
   const [showRewardForm, setShowRewardForm] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const [rewardForm, setRewardForm] = useState<Partial<Reward>>({
-    title: '', xp_cost: 100, reward_type: 'general', icon: '🎁',
+    title: '', xp_cost: 100, reward_type: 'general', icon: 'GiftIcon',
     drop_rate: 10, active: true, description: '', stock: null, link: ''
   });
 
@@ -257,6 +257,13 @@ export default function AdminPage() {
       showToast('Reward added! ✓');
     }
     setShowRewardForm(false); setEditingReward(null);
+  };
+
+  const deleteReward = async (id: string) => {
+    const { error } = await supabase.from('rewards_catalogue').delete().eq('id', id);
+    if (error) { showToast('Error deleting reward'); return; }
+    setRewards(prev => prev.filter(r => r.id !== id));
+    showToast('Reward deleted.');
   };
 
   // ── Quiz handlers ──────────────────────────────────────────────
@@ -695,7 +702,9 @@ export default function AdminPage() {
                       {reward.image_url ? (
                         <img src={reward.image_url} className="w-12 h-12 rounded-lg object-cover border" />
                       ) : (
-                        <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center text-2xl">{reward.icon}</div>
+                        <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center">
+                          <Icon name={reward.icon as any} size={24} className="text-orange-500" />
+                        </div>
                       )}
                       <div>
                         <p className="font-semibold text-primary-800 text-sm">{reward.title}</p>
@@ -708,6 +717,7 @@ export default function AdminPage() {
                     <div className="flex items-center gap-1">
                       <span className={`w-2 h-2 rounded-full ${reward.active ? 'bg-green-500' : 'bg-red-500'}`} title={reward.active ? 'Active' : 'Inactive'} />
                       <button onClick={() => { setEditingReward(reward); setRewardForm({...reward}); setShowRewardForm(true); }} className="p-1.5 text-earth-400 hover:text-primary-600"><Icon name="PencilSquareIcon" size={15} /></button>
+                      <button onClick={() => deleteReward(reward.id)} className="p-1.5 text-earth-400 hover:text-red-500"><Icon name="TrashIcon" size={15} /></button>
                     </div>
                   </div>
                   {reward.description && <p className="text-xs text-earth-500 line-clamp-2 mt-1">{reward.description}</p>}
