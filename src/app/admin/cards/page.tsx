@@ -1,20 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 
 interface Reward {
   id?: string;
   title: string;
   description: string | null;
-  xp_cost: number;
+  points_cost: number;
   reward_type: string;
   icon: string;
+  image_url: string | null;
+  probability_weight: number;
   active: boolean;
   stock: number | null;
   link: string | null;
@@ -34,9 +32,11 @@ const ICONS = ['🎁', '🏆', '🎣', '🐟', '⚓', '🌊', '🎯', '💎', '�
 const emptyReward = (): Omit<Reward, 'id'> => ({
   title: '',
   description: '',
-  xp_cost: 100,
+  points_cost: 100,
   reward_type: 'general',
   icon: '🎁',
+  image_url: '',
+  probability_weight: 10,
   active: true,
   stock: null,
   link: '',
@@ -46,8 +46,6 @@ export default function AdminRewardsPage() {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const [form, setForm] = useState<Omit<Reward, 'id'>>(emptyReward());
@@ -55,17 +53,15 @@ export default function AdminRewardsPage() {
   const [showIconPicker, setShowIconPicker] = useState(false);
 
   useEffect(() => { fetchRewards(); }, []);
-  useEffect(() => {
-    if (success) { const t = setTimeout(() => setSuccess(null), 3000); return () => clearTimeout(t); }
-  }, [success]);
 
   async function fetchRewards() {
     setLoading(true);
+    const supabase = createClient();
     const { data, error } = await supabase
       .from('rewards_catalogue')
       .select('*')
       .order('created_at', { ascending: true });
-    if (error) setError(error.message);
+    if (error) toast.error("Failed to load: " + error.message);
     else setRewards(data || []);
     setLoading(false);
   }
@@ -83,53 +79,56 @@ export default function AdminRewardsPage() {
   }
 
   async function handleSave() {
-    setError(null);
-    if (!form.title.trim()) { setError('Title is required'); return; }
-    if (!form.xp_cost || form.xp_cost < 1) { setError('XP cost must be at least 1'); return; }
+    if (!form.title.trim()) { toast.error('Title is required'); return; }
+    if (!form.points_cost || form.points_cost < 1) { toast.error('Points cost must be at least 1'); return; }
 
     setSaving(true);
+    const supabase = createClient();
     try {
       const payload = {
         ...form,
         link: form.link?.trim() || null,
         description: form.description?.trim() || null,
+        image_url: form.image_url?.trim() || null,
         stock: form.stock ?? null,
       };
 
       if (editingReward?.id) {
         const { error } = await supabase.from('rewards_catalogue').update(payload).eq('id', editingReward.id);
         if (error) throw error;
-        setSuccess(`"${form.title}" updated`);
+        toast.success(`"${form.title}" updated successfully`);
       } else {
         const { error } = await supabase.from('rewards_catalogue').insert([payload]);
         if (error) throw error;
-        setSuccess(`"${form.title}" created`);
+        toast.success(`"${form.title}" created successfully`);
       }
       setShowForm(false);
       await fetchRewards();
     } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+      toast.error(err.message || 'Something went wrong while saving');
     } finally {
       setSaving(false);
     }
   }
 
   async function handleToggleActive(reward: Reward) {
+    const supabase = createClient();
     const { error } = await supabase
       .from('rewards_catalogue')
       .update({ active: !reward.active })
       .eq('id', reward.id!);
-    if (error) { setError(error.message); return; }
-    setSuccess(`"${reward.title}" ${!reward.active ? 'activated' : 'deactivated'}`);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`"${reward.title}" ${!reward.active ? 'is now active' : 'is now hidden'}`);
     await fetchRewards();
   }
 
   async function handleDelete(id: string, title: string) {
     if (confirmDelete !== id) { setConfirmDelete(id); return; }
+    const supabase = createClient();
     const { error } = await supabase.from('rewards_catalogue').delete().eq('id', id);
-    if (error) { setError(error.message); return; }
+    if (error) { toast.error(error.message); return; }
     setConfirmDelete(null);
-    setSuccess(`"${title}" deleted`);
+    toast.success(`"${title}" deleted`);
     await fetchRewards();
   }
 
@@ -142,31 +141,18 @@ export default function AdminRewardsPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Rewards Manager</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Rewards & Card Manager</h1>
             <p className="text-sm text-gray-500 mt-1">
               {rewards.length} total · {activeCount} active
             </p>
           </div>
           <button
             onClick={openCreate}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm"
           >
-            <span className="text-lg leading-none">+</span> New Reward
+            <span className="text-lg leading-none">+</span> Add New
           </button>
         </div>
-
-        {/* Alerts */}
-        {error && (
-          <div className="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            <span>⚠</span> <span>{error}</span>
-            <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">✕</button>
-          </div>
-        )}
-        {success && (
-          <div className="mb-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-sm">
-            <span>✓</span> {success}
-          </div>
-        )}
 
         {/* Form Modal */}
         {showForm && (
@@ -174,7 +160,7 @@ export default function AdminRewardsPage() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8">
               <div className="flex items-center justify-between px-6 py-4 border-b">
                 <h2 className="text-lg font-bold text-gray-900">
-                  {editingReward ? `Edit: ${editingReward.title}` : 'Create New Reward'}
+                  {editingReward ? `Edit: ${editingReward.title}` : 'Create New'}
                 </h2>
                 <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
               </div>
@@ -215,6 +201,19 @@ export default function AdminRewardsPage() {
                   </div>
                 </div>
 
+                {/* Image URL */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Image URL <span className="text-gray-400 font-normal">(Paste image link here)</span>
+                  </label>
+                  <input
+                    type="text" value={form.image_url || ''}
+                    onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="https://example.com/my-card-image.png"
+                  />
+                </div>
+
                 {/* Description */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -241,8 +240,8 @@ export default function AdminRewardsPage() {
                   <p className="text-xs text-gray-400 mt-1">Members will see a clickable button when redeeming this reward</p>
                 </div>
 
-                {/* Type + XP Cost */}
-                <div className="grid grid-cols-2 gap-4">
+                {/* Type + Points Cost + Probability */}
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                     <select
@@ -256,11 +255,19 @@ export default function AdminRewardsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">XP Cost *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Points Cost *</label>
                     <input
-                      type="number" min={1} value={form.xp_cost}
-                      onChange={e => setForm(f => ({ ...f, xp_cost: Number(e.target.value) }))}
+                      type="number" min={1} value={form.points_cost}
+                      onChange={e => setForm(f => ({ ...f, points_cost: Number(e.target.value) }))}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Drop Chance (%)</label>
+                    <input
+                      type="number" min={1} max={100} value={form.probability_weight}
+                      onChange={e => setForm(f => ({ ...f, probability_weight: Number(e.target.value) }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                 </div>
@@ -298,9 +305,9 @@ export default function AdminRewardsPage() {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-5 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                  className="px-5 py-2 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors"
                 >
-                  {saving ? 'Saving…' : editingReward ? 'Save Changes' : 'Create Reward'}
+                  {saving ? 'Saving…' : editingReward ? 'Save Changes' : 'Create'}
                 </button>
               </div>
             </div>
@@ -318,7 +325,7 @@ export default function AdminRewardsPage() {
             <p className="font-semibold text-gray-600">No rewards yet</p>
             <p className="text-sm mt-1">Create your first reward to get started</p>
             <button onClick={openCreate} className="mt-4 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors">
-              Create First Reward
+              Add First Item
             </button>
           </div>
         ) : (
@@ -333,11 +340,18 @@ export default function AdminRewardsPage() {
                   }`}
                 >
                   <div className="p-5">
+                    {reward.image_url && (
+                      <div className="w-full h-32 mb-4 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                        <img src={reward.image_url} alt={reward.title} className="w-full h-full object-cover" />
+                      </div>
+                    )}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <span className="text-3xl">{reward.icon}</span>
+                        {!reward.image_url && <span className="text-3xl">{reward.icon}</span>}
                         <div>
-                          <h3 className="font-bold text-gray-900 text-sm leading-tight">{reward.title}</h3>
+                          <h3 className="font-bold text-gray-900 text-sm leading-tight">
+                            {reward.title}
+                          </h3>
                           <span className="text-xs text-gray-400">{typeInfo?.emoji} {typeInfo?.label}</span>
                         </div>
                       </div>
@@ -354,7 +368,7 @@ export default function AdminRewardsPage() {
 
                     <div className="flex items-center gap-3 mb-3">
                       <div className="flex items-center gap-1.5 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
-                        <span>⭐</span> {reward.xp_cost} XP
+                        <span>⭐</span> {reward.points_cost} Pts
                       </div>
                       {reward.stock !== null && (
                         <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
@@ -366,6 +380,9 @@ export default function AdminRewardsPage() {
                           <span>🔗</span> Link
                         </div>
                       )}
+                      <div className="flex items-center gap-1 bg-orange-50 text-orange-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
+                        <span>🎲</span> {reward.probability_weight}%
+                      </div>
                     </div>
 
                     {reward.link && (

@@ -10,6 +10,7 @@ import Link from 'next/link';
 type Phase = 'idle' | 'shaking' | 'ripping' | 'revealing' | 'card-flip' | 'done';
 
 interface RevealedCard extends FishingCard {
+  image_url?: string | null;
   flipped: boolean;
   glowing: boolean;
 }
@@ -182,7 +183,7 @@ export default function CardOpeningPage() {
             {/* Cards row */}
             <div className="flex flex-wrap justify-center gap-6 mb-8">
               {revealedCards.map((card, idx) => {
-                const rarity = rarityConfig[card.rarity];
+                const rarity = (card && card.rarity) ? rarityConfig[card.rarity] : { color: 'text-gray-500', label: 'Common' };
                 return (
                   <div key={card.id + idx} className="relative" style={{ perspective: '800px' }}>
                     <div
@@ -212,12 +213,12 @@ export default function CardOpeningPage() {
                         style={{
                           backfaceVisibility: 'hidden',
                           WebkitBackfaceVisibility: 'hidden',
-                          border: `2px solid ${card.borderColor}`,
+                          border: `2px solid ${card.borderColor || '#e5e7eb'}`,
                           boxShadow: card.glowing ? `0 0 30px 8px ${card.borderColor}80` : 'none',
                           transition: 'box-shadow 0.5s ease',
                         }}
                       >
-                        <div className={`bg-gradient-to-br ${card.gradient} flex-1 flex flex-col items-center justify-center p-3 relative`}>
+                        <div className={`bg-gradient-to-br ${card.gradient || 'from-gray-400 to-gray-500'} flex-1 flex flex-col items-center justify-center p-3 relative`}>
                           {card.foil && (
                             <div
                               className="absolute inset-0 opacity-40 pointer-events-none"
@@ -227,15 +228,21 @@ export default function CardOpeningPage() {
                               }}
                             />
                           )}
+                        {card.image_url ? (
+                          <div className="absolute inset-0 w-full h-full">
+                            <img src={card.image_url} alt={card.name} className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
                           <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-2">
                             <Icon name="SparklesIcon" size={22} className="text-white/80" />
                           </div>
+                        )}
                           <p className="text-white font-display text-sm text-center leading-tight drop-shadow">{card.name}</p>
                         </div>
                         <div className="bg-white px-2 py-1.5">
                           <div className="flex items-center justify-between">
-                            <span className={`text-xs font-sans font-bold ${rarity.color}`}>{card.rarity}</span>
-                            <span className="text-xs font-sans text-red-500 font-semibold">P:{card.power}</span>
+                          <span className={`text-xs font-sans font-bold ${rarity.color}`}>{card.rarity || 'Common'}</span>
+                            <span className="text-xs font-sans text-red-500 font-semibold">P:{card.power || 0}</span>
                           </div>
                         </div>
                       </div>
