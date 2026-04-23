@@ -9,26 +9,17 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface Reward {
   id: string;
-  label: string;
+  title: string;
   description: string;
-  pointsCost: number;
-  type: string;
+  xp_cost: number;
+  reward_type: string;
   icon: string;
-  color: string;
-  bg: string;
+  image_url?: string;
 }
-
-const rewards: Reward[] = [
-  { id: 'pack-1',    label: 'Card Pack',          description: 'Receive a random pack of 3 new fishing cards to add to your collection!',  pointsCost: 500,  type: 'card-pack',   icon: 'GiftIcon',              color: '#ff751f', bg: 'bg-orange-50'  },
-  { id: 'pack-2',    label: 'Rare Pack',           description: 'A special pack guaranteed to contain at least one Elusive or rarer card!',  pointsCost: 1000, type: 'rare-pack',   icon: 'SparklesIcon',          color: '#3B82F6', bg: 'bg-blue-50'    },
-  { id: 'discount',  label: '10% Shop Discount',   description: 'Get a 10% discount code for your next purchase at Voyagers Hook!',          pointsCost: 750,  type: 'discount',    icon: 'TagIcon',               color: '#2D6A4F', bg: 'bg-green-50'   },
-  { id: 'discount2', label: '20% Shop Discount',   description: 'Get a 20% discount code for your next purchase at Voyagers Hook!',          pointsCost: 1500, type: 'discount',    icon: 'TagIcon',               color: '#7C3AED', bg: 'bg-purple-50'  },
-  { id: 'external',  label: 'Rewards Page',        description: 'Visit the Voyagers Hook rewards page to choose from exclusive prizes!',     pointsCost: 2000, type: 'external',    icon: 'TrophyIcon',            color: '#F59E0B', bg: 'bg-amber-50'   },
-  { id: 'legend',    label: 'Legendary Pack',      description: 'An ultra-rare pack with a chance of containing a Legendary card!',          pointsCost: 2500, type: 'legend-pack', icon: 'StarIcon',              color: '#F59E0B', bg: 'bg-yellow-50'  },
-];
 
 export default function RewardsPage() {
   const { user } = useAuth();
+  const [availableRewards, setAvailableRewards] = useState<Reward[]>([]);
   const [totalPoints, setTotalPoints] = useState(0);
   const [redemptions, setRedemptions] = useState<{ reward_label: string; points_cost: number; redeemed_at: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,18 +31,18 @@ export default function RewardsPage() {
     Promise.all([
       supabase.from('user_profiles').select('total_points').eq('id', user.id).single(),
       supabase.from('rewards_redemptions').select('reward_label, points_cost, redeemed_at').eq('user_id', user.id).order('redeemed_at', { ascending: false }).limit(5),
-    ]).then(([profResult, redsResult]) => {
-      const prof = profResult.data;
-      const reds = redsResult.data;
-      if (prof) setTotalPoints(prof.total_points || 0);
-      setRedemptions(reds || []);
+      supabase.from('rewards_catalogue').select('*').eq('active', true).order('xp_cost', { ascending: true })
+    ]).then(([profResult, redsResult, rewardsResult]) => {
+      if (profResult.data) setTotalPoints(profResult.data.total_points || 0);
+      setRedemptions(redsResult.data || []);
+      setAvailableRewards(rewardsResult.data || []);
       setLoading(false);
     });
   }, [user]);
 
   const handleRedeem = async (reward: Reward) => {
-    if (!user || totalPoints < reward.pointsCost) {
-      toast.error(`You need ${reward.pointsCost - totalPoints} more points to redeem this!`);
+    if (!user || totalPoints < reward.xp_cost) {
+      toast.error(`You need ${reward.xp_cost - totalPoints} more points to redeem this!`);
       return;
     }
     setRedeeming(reward.id);
@@ -59,15 +50,15 @@ export default function RewardsPage() {
       const supabase = createClient();
       const { error } = await supabase.from('rewards_redemptions').insert({
         user_id: user.id,
-        reward_type: reward.type,
-        reward_label: reward.label,
-        points_cost: reward.pointsCost,
+        reward_type: reward.reward_type,
+        reward_label: reward.title,
+        points_cost: reward.xp_cost,
       });
       if (error) throw error;
       // Deduct points
-      await supabase.from('user_profiles').update({ total_points: totalPoints - reward.pointsCost }).eq('id', user.id);
-      setTotalPoints(p => p - reward.pointsCost);
-      toast.success(`${reward.label} redeemed! The Voyagers Hook team will be in touch.`);
+      await supabase.from('user_profiles').update({ total_points: totalPoints - reward.xp_cost }).eq('id', user.id);
+      setTotalPoints(p => p - reward.xp_cost);
+      toast.success(`${reward.title} redeemed! The Voyagers Hook team will be in touch.`);
       // Refresh redemptions
       const { data: reds } = await supabase.from('rewards_redemptions').select('reward_label, points_cost, redeemed_at').eq('user_id', user.id).order('redeemed_at', { ascending: false }).limit(5);
       setRedemptions(reds || []);
@@ -107,19 +98,23 @@ export default function RewardsPage() {
 
         {/* Rewards grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rewards.map((reward) => {
-            const canAfford = totalPoints >= reward.pointsCost;
+          {availableRewards.map((reward) => {
+            const canAfford = totalPoints >= reward.xp_cost;
             return (
               <div key={reward.id} className={`bg-white rounded-3xl border border-adventure-border shadow-card p-5 flex flex-col card-lift ${!canAfford ? 'opacity-75' : ''}`}>
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${reward.bg}`}>
-                  <Icon name={reward.icon as Parameters<typeof Icon>[0]['name']} size={26} style={{ color: reward.color }} />
+                <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center mb-4">
+                  {reward.image_url ? (
+                    <img src={reward.image_url} alt={reward.title} className="w-10 h-10 object-contain" />
+                  ) : (
+                    <Icon name={reward.icon as any} size={26} className="text-orange-500" />
+                  )}
                 </div>
-                <h3 className="font-display text-xl text-primary-800 mb-1">{reward.label}</h3>
+                <h3 className="font-display text-xl text-primary-800 mb-1">{reward.title}</h3>
                 <p className="font-sans text-sm text-earth-500 leading-relaxed flex-1 mb-4">{reward.description}</p>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <Icon name="StarIcon" size={14} className="text-amber-500" />
-                    <span className="font-display text-lg text-primary-800 tabular-nums">{reward.pointsCost.toLocaleString()}</span>
+                    <span className="font-display text-lg text-primary-800 tabular-nums">{reward.xp_cost.toLocaleString()}</span>
                     <span className="text-xs font-sans text-earth-400">pts</span>
                   </div>
                   <button
@@ -133,7 +128,7 @@ export default function RewardsPage() {
                     ) : (
                       <Icon name="GiftIcon" size={14} />
                     )}
-                    {canAfford ? 'Redeem' : `Need ${(reward.pointsCost - totalPoints).toLocaleString()} more`}
+                    {canAfford ? 'Redeem' : `Need ${(reward.xp_cost - totalPoints).toLocaleString()} more`}
                   </button>
                 </div>
               </div>

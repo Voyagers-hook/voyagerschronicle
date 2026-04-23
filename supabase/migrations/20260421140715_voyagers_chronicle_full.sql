@@ -116,6 +116,20 @@ CREATE TABLE IF NOT EXISTS public.catch_submissions (
   reviewed_at TIMESTAMPTZ
 );
 
+-- Rewards Catalogue (Admin-managed)
+CREATE TABLE IF NOT EXISTS public.rewards_catalogue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT,
+  xp_cost INTEGER NOT NULL DEFAULT 0,
+  reward_type TEXT NOT NULL DEFAULT 'general',
+  icon TEXT DEFAULT '🎁',
+  image_url TEXT,
+  active BOOLEAN DEFAULT true,
+  drop_rate INTEGER DEFAULT 10,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Rewards / points redemptions
 CREATE TABLE IF NOT EXISTS public.rewards_redemptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -145,6 +159,7 @@ CREATE INDEX IF NOT EXISTS idx_trades_to_user ON public.trades(to_user_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_scores_user_id ON public.quiz_scores(user_id);
 CREATE INDEX IF NOT EXISTS idx_catch_submissions_user_id ON public.catch_submissions(user_id);
 CREATE INDEX IF NOT EXISTS idx_rewards_user_id ON public.rewards_redemptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_rewards_catalogue_active ON public.rewards_catalogue(active);
 
 -- ── 4. FUNCTIONS ─────────────────────────────────────────────
 
@@ -224,6 +239,7 @@ ALTER TABLE public.quiz_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.catch_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rewards_redemptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fun_facts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rewards_catalogue ENABLE ROW LEVEL SECURITY;
 
 -- ── 6. RLS POLICIES ──────────────────────────────────────────
 
@@ -301,6 +317,15 @@ DROP POLICY IF EXISTS "users_manage_own_rewards" ON public.rewards_redemptions;
 CREATE POLICY "users_manage_own_rewards" ON public.rewards_redemptions
 FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
+-- rewards_catalogue
+DROP POLICY IF EXISTS "anyone_view_active_rewards" ON public.rewards_catalogue;
+CREATE POLICY "anyone_view_active_rewards" ON public.rewards_catalogue
+FOR SELECT TO authenticated USING (active = true);
+
+DROP POLICY IF EXISTS "admin_manage_rewards" ON public.rewards_catalogue;
+CREATE POLICY "admin_manage_rewards" ON public.rewards_catalogue
+FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
 -- fun_facts
 DROP POLICY IF EXISTS "anyone_read_fun_facts" ON public.fun_facts;
 CREATE POLICY "anyone_read_fun_facts" ON public.fun_facts
@@ -356,6 +381,15 @@ VALUES
   (23, 'Salmon Trout',    'Salmo trutta',            'Specimen',  68, 58, 65, 80, 'Stream',  'Introduced from Europe, now a prized catch in cold streams.',            false, 'from-orange-400 via-amber-300 to-orange-500',  '#F97316'),
   (24, 'The Voyager',     'Mythicus voyagerus',      'Legendary', 100,100,100,100,'Legend',  'The rarest card of all. Only true Voyagers can unlock this.',            true,  'from-amber-400 via-yellow-300 to-amber-500',   '#F59E0B')
 ON CONFLICT (card_number) DO NOTHING;
+
+-- Seed initial rewards
+INSERT INTO public.rewards_catalogue (title, description, xp_cost, reward_type, icon)
+VALUES
+  ('Card Pack', 'Receive a random pack of 3 new fishing cards!', 500, 'card-pack', 'GiftIcon'),
+  ('Rare Pack', 'A special pack guaranteed to contain at least one Elusive or rarer card!', 1000, 'rare-pack', 'SparklesIcon'),
+  ('10% Shop Discount', 'Get a 10% discount code for your next purchase!', 750, 'discount', 'TagIcon'),
+  ('Rewards Page', 'Visit the Voyagers Hook rewards page for exclusive prizes!', 2000, 'external', 'TrophyIcon')
+ON CONFLICT DO NOTHING;
 
 -- Insert fun facts
 INSERT INTO public.fun_facts (title, content, category, icon_name)

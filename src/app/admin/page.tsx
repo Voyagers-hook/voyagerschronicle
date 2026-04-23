@@ -156,28 +156,15 @@ export default function AdminPage() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'cards' | 'rewards') => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `${type}/${fileName}`;
-    const { error: uploadError } = await supabase.storage
-      .from('voyagers-images')
-      .upload(filePath, file);
-    if (uploadError) { showToast('Error uploading: ' + uploadError.message); return; }
-    const { data } = supabase.storage.from('voyagers-images').getPublicUrl(filePath);
-    if (type === 'cards') {
-      setCardForm(prev => ({ ...prev, image_url: data.publicUrl }));
-    } else {
-      setRewardForm(prev => ({ ...prev, image_url: data.publicUrl }));
-
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${type}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage.from('card-images').upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from('voyagers-images').upload(filePath, file);
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from('card-images').getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from('voyagers-images').getPublicUrl(filePath);
       if (type === 'cards') {
         setCardForm(prev => ({ ...prev, image_url: urlData.publicUrl }));
       } else {
@@ -200,20 +187,11 @@ export default function AdminPage() {
     if (targets.length === 0) { showToast('Select at least one member.'); return; }
 
     setSending(true);
-    const totalWeight = cards.reduce((sum, c) => sum + (c.probability_weight ?? 10), 0);
     const totalWeight = pool.reduce((sum, c) => sum + (c.drop_rate ?? 10), 0);
     const rows: { user_id: string; card_id: string }[] = [];
 
     for (const member of targets) {
       for (let i = 0; i < batchSize; i++) {
-        const randomCard = cards[Math.floor(Math.random() * cards.length)];
-        rows.push({ user_id: member.id, card_id: randomCard.id });
-        let random = Math.random() * totalWeight;
-        let selectedCard = cards[0];
-        for (const card of cards) {
-          const weight = card.probability_weight ?? 10;
-          if (random < weight) { selectedCard = card; break; }
-          random -= weight;
         let rVal = Math.random() * totalWeight;
         let selectedCard = pool[0];
         for (const card of pool) {
