@@ -36,9 +36,10 @@ interface Card {
   drop_rate: number;
 }
 interface Reward {
-  id: string; title: string; description: string | null; null;
+  id: string; title: string; description: string | null;
+  points_cost: number; reward_type: string; icon: string; image_url: string | null;
   active: boolean; stock: number | null; link: string | null;
-  drop_rate: number;
+  probability_weight: number;
 }
 interface Member {
   id: string; username: string; email: string; level: number;
@@ -94,7 +95,8 @@ export default function AdminPage() {
   const [showRewardForm, setShowRewardForm] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const [rewardForm, setRewardForm] = useState<Partial<Reward>>({
-    title: '', points_cost: 100, reward_type: 'general', icon: 'G'
+    title: '', points_cost: 100, reward_type: 'general', icon: 'GiftIcon',
+    active: true, probability_weight: 10, description: '', stock: null, link: ''
   });
 
   // Quiz form state
@@ -122,7 +124,8 @@ export default function AdminPage() {
       supabase.from('cards').select('*').order('card_number'),
       supabase.from('rewards_catalogue').select('*').order('points_cost', { ascending: true }),
       supabase.from('user_profiles').select('id, username, email, level, membership_tier, total_points').eq('role', 'member'),
-      supabase.from('quiz_questions').select('*').order('cret_stse*re
+      supabase.from('quiz_questions').select('*').order('created_at'),
+      supabase.from('fun_facts').select('*').order('created_at'),
       supabase.from('fishing_tips').select('*').order('created_at'),
     ]);
 
@@ -654,10 +657,11 @@ export default function AdminPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-sans text-earth-400">{rewards.length} rewards available</p>
-              <button onClick={() => { setEditingReward(null); setRewardForm({ title: '', points_cost: 100, reward_type: 'general', icon: 'GiftIcon', drop_rate: 10, active: true, description: '', stock: null, link: '' }); setShowRewardForm(true); }}
+              <button onClick={() => { setEditingReward(null); setRewardForm({ title: '', points_cost: 100, reward_type: 'general', icon: 'GiftIcon', probability_weight: 10, active: true, description: '', stock: null, link: '' }); setShowRewardForm(true); }}
                 className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
                 <Icon name="PlusCircleIcon" size={16} /> Add Reward Item
               </button>
+            </div>
 
             {showRewardForm && (
               <div className="bg-white rounded-2xl border border-adventure-border shadow-card p-6 fade-in">
@@ -696,7 +700,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="md:col-span-2"><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={rewardForm.description || ''} onChange={e => setRewardForm(p => ({ ...p, description: e.target.value }))} /></div>
-                  <div><label className={labelCls}>Chance Weight</label><input type="number" className={inputCls} value={rewardForm.drop_rate || 10} onChange={e => setRewardForm(p => ({ ...p, drop_rate: Number(e.target.value) }))} /></div>
+                  <div><label className={labelCls}>Chance Weight (%)</label><input type="number" className={inputCls} value={rewardForm.probability_weight || 10} onChange={e => setRewardForm(p => ({ ...p, probability_weight: Number(e.target.value) }))} /></div>
                   <div><label className={labelCls}>Stock (Leave empty for unlimited)</label><input type="number" className={inputCls} value={rewardForm.stock || ''} onChange={e => setRewardForm(p => ({ ...p, stock: e.target.value ? Number(e.target.value) : null }))} /></div>
                   <div className="md:col-span-2"><label className={labelCls}>External Link (Optional)</label><input className={inputCls} value={rewardForm.link || ''} onChange={e => setRewardForm(p => ({ ...p, link: e.target.value }))} /></div>
                 </div>
@@ -722,14 +726,15 @@ export default function AdminPage() {
                       <div>
                         <p className="font-semibold text-primary-800 text-sm">{reward.title}</p>
                         <p className="text-xs text-earth-400">
-                          {reward.points_cost} Pts · {reward.drop_rate}% Chance
+                          {reward.points_cost} Pts · {reward.probability_weight}% Chance
                           {reward.stock !== null && ` · Stock: ${reward.stock}`}
                         </p>
                       </div>
                     </div>
-                      <span className={`w-2 h-2 rounded-full ${reward.active ? 'bg-green-500' : 'bg-red-500'}`} title={reward.active ? 'Active' : 'Inactive'} />
-                      <button onClick={() => { setEditingReward(reward); setRewardForm({...reward}); setShowRewardForm(true); }} className="p-1.5 text-earth-400 hover:text-primary-600"><Icon name="PencilSquareIcon" size={15} /></button>
-                      <button onClick={() => deleteReward(reward.id)} className="p-1.5 text-earth-400 hover:text-red-500"><Icon name="TrashIcon" size={15} /></button>
+                    <div className="flex items-center gap-1">
+                        <span className={`w-2 h-2 rounded-full ${reward.active ? 'bg-green-500' : 'bg-red-500'}`} title={reward.active ? 'Active' : 'Inactive'} />
+                        <button onClick={() => { setEditingReward(reward); setRewardForm({...reward}); setShowRewardForm(true); }} className="p-1.5 text-earth-400 hover:text-primary-600"><Icon name="PencilSquareIcon" size={15} /></button>
+                        <button onClick={() => deleteReward(reward.id)} className="p-1.5 text-earth-400 hover:text-red-500"><Icon name="TrashIcon" size={15} /></button>
                     </div>
                   </div>
                   {reward.description && <p className="text-xs text-earth-500 line-clamp-2 mt-1">{reward.description}</p>}
