@@ -485,7 +485,6 @@ export default function AdminPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-sans text-earth-400">{cards.length} cards in collection</p>
-              <button onClick={() => { setEditingCard(null); setCardForm({ name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50, stamina: 50, beauty: 50, habitat: '', description: '', gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6' }); setShowCardForm(true); }}
               <button onClick={() => { setEditingCard(null); setCardForm({ name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50, stamina: 50, beauty: 50, habitat: '', description: '', gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6', image_url: '', probability_weight: 10 }); setShowCardForm(true); }}
                 className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
                 <Icon name="PlusCircleIcon" size={16} /> Add New Card
