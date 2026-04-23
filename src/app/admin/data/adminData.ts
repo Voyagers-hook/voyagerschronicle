@@ -54,7 +54,7 @@ export interface AdminReward {
   id: string;
   label: string;
   description: string;
-  pointsCost: number;
+  xpCost: number;
   type: string;
   icon: string;
   color: string;
@@ -122,12 +122,12 @@ export const adminCards: AdminCard[] = [
 ];
 
 export const adminRewards: AdminReward[] = [
-  { id: 'pack-1',    label: 'Card Pack',        description: 'Receive a random pack of 3 new fishing cards!',                    pointsCost: 500,  type: 'card-pack',   icon: 'GiftIcon',     color: '#ff751f', bg: 'bg-orange-50',  active: true  },
-  { id: 'pack-2',    label: 'Rare Pack',         description: 'A special pack with at least one Elusive or rarer card!',          pointsCost: 1000, type: 'rare-pack',   icon: 'SparklesIcon', color: '#3B82F6', bg: 'bg-blue-50',    active: true  },
-  { id: 'discount',  label: '10% Shop Discount', description: 'Get a 10% discount code for your next purchase!',                  pointsCost: 750,  type: 'discount',    icon: 'TagIcon',      color: '#2D6A4F', bg: 'bg-green-50',   active: true  },
-  { id: 'discount2', label: '20% Shop Discount', description: 'Get a 20% discount code for your next purchase!',                  pointsCost: 1500, type: 'discount',    icon: 'TagIcon',      color: '#7C3AED', bg: 'bg-purple-50',  active: true  },
-  { id: 'external',  label: 'Rewards Page',      description: 'Visit the Voyagers Hook rewards page for exclusive prizes!',       pointsCost: 2000, type: 'external',    icon: 'TrophyIcon',   color: '#F59E0B', bg: 'bg-amber-50',   active: true  },
-  { id: 'legend',    label: 'Legendary Pack',    description: 'An ultra-rare pack with a chance of a Legendary card!',            pointsCost: 2500, type: 'legend-pack', icon: 'StarIcon',     color: '#F59E0B', bg: 'bg-yellow-50',  active: true  },
+  { id: 'pack-1',    label: 'Card Pack',        description: 'Receive a random pack of 3 new fishing cards!',                    XPCost: 500,  type: 'card-pack',   icon: 'GiftIcon',     color: '#ff751f', bg: 'bg-orange-50',  active: true  },
+  { id: 'pack-2',    label: 'Rare Pack',         description: 'A special pack with at least one Elusive or rarer card!',          XPCost: 1000, type: 'rare-pack',   icon: 'SparklesIcon', color: '#3B82F6', bg: 'bg-blue-50',    active: true  },
+  { id: 'discount',  label: '10% Shop Discount', description: 'Get a 10% discount code for your next purchase!',                  XPCost: 750,  type: 'discount',    icon: 'TagIcon',      color: '#2D6A4F', bg: 'bg-green-50',   active: true  },
+  { id: 'discount2', label: '20% Shop Discount', description: 'Get a 20% discount code for your next purchase!',                  XPCost: 1500, type: 'discount',    icon: 'TagIcon',      color: '#7C3AED', bg: 'bg-purple-50',  active: true  },
+  { id: 'external',  label: 'Rewards Page',      description: 'Visit the Voyagers Hook rewards page for exclusive prizes!',       XPCost: 2000, type: 'external',    icon: 'TrophyIcon',   color: '#F59E0B', bg: 'bg-amber-50',   active: true  },
+  { id: 'legend',    label: 'Legendary Pack',    description: 'An ultra-rare pack with a chance of a Legendary card!',            XPCost: 2500, type: 'legend-pack', icon: 'StarIcon',     color: '#F59E0B', bg: 'bg-yellow-50',  active: true  },
 ];
 
 export const adminFunFacts: AdminFunFact[] = [
