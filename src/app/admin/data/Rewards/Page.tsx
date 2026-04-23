@@ -1,18 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 
 interface Reward {
   id?: string;
   title: string;
   description: string | null;
-  xp_cost: number;
+  points_cost: number;
   reward_type: string;
   icon: string;
   active: boolean;
@@ -34,7 +30,7 @@ const ICONS = ['🎁', '🏆', '🎣', '🐟', '⚓', '🌊', '🎯', '💎', '�
 const emptyReward = (): Omit<Reward, 'id'> => ({
   title: '',
   description: '',
-  xp_cost: 100,
+  points_cost: 100,
   reward_type: 'general',
   icon: '🎁',
   active: true,
@@ -46,8 +42,6 @@ export default function AdminRewardsPage() {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const [form, setForm] = useState<Omit<Reward, 'id'>>(emptyReward());
@@ -55,17 +49,15 @@ export default function AdminRewardsPage() {
   const [showIconPicker, setShowIconPicker] = useState(false);
 
   useEffect(() => { fetchRewards(); }, []);
-  useEffect(() => {
-    if (success) { const t = setTimeout(() => setSuccess(null), 3000); return () => clearTimeout(t); }
-  }, [success]);
 
   async function fetchRewards() {
     setLoading(true);
+    const supabase = createClient();
     const { data, error } = await supabase
       .from('rewards_catalogue')
       .select('*')
       .order('created_at', { ascending: true });
-    if (error) setError(error.message);
+    if (error) toast.error(error.message);
     else setRewards(data || []);
     setLoading(false);
   }
@@ -83,11 +75,11 @@ export default function AdminRewardsPage() {
   }
 
   async function handleSave() {
-    setError(null);
     if (!form.title.trim()) { setError('Title is required'); return; }
-    if (!form.xp_cost || form.xp_cost < 1) { setError('XP cost must be at least 1'); return; }
+    if (!form.points_cost || form.points_cost < 1) { toast.error('Points cost must be at least 1'); return; }
 
     setSaving(true);
+    const supabase = createClient();
     try {
       const payload = {
         ...form,
@@ -99,37 +91,39 @@ export default function AdminRewardsPage() {
       if (editingReward?.id) {
         const { error } = await supabase.from('rewards_catalogue').update(payload).eq('id', editingReward.id);
         if (error) throw error;
-        setSuccess(`"${form.title}" updated`);
+        toast.success(`"${form.title}" updated`);
       } else {
         const { error } = await supabase.from('rewards_catalogue').insert([payload]);
         if (error) throw error;
-        setSuccess(`"${form.title}" created`);
+        toast.success(`"${form.title}" created`);
       }
       setShowForm(false);
       await fetchRewards();
     } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+      toast.error(err.message || 'Something went wrong');
     } finally {
       setSaving(false);
     }
   }
 
   async function handleToggleActive(reward: Reward) {
+    const supabase = createClient();
     const { error } = await supabase
       .from('rewards_catalogue')
       .update({ active: !reward.active })
       .eq('id', reward.id!);
-    if (error) { setError(error.message); return; }
-    setSuccess(`"${reward.title}" ${!reward.active ? 'activated' : 'deactivated'}`);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`"${reward.title}" ${!reward.active ? 'activated' : 'deactivated'}`);
     await fetchRewards();
   }
 
   async function handleDelete(id: string, title: string) {
     if (confirmDelete !== id) { setConfirmDelete(id); return; }
+    const supabase = createClient();
     const { error } = await supabase.from('rewards_catalogue').delete().eq('id', id);
-    if (error) { setError(error.message); return; }
+    if (error) { toast.error(error.message); return; }
     setConfirmDelete(null);
-    setSuccess(`"${title}" deleted`);
+    toast.success(`"${title}" deleted`);
     await fetchRewards();
   }
 
@@ -154,19 +148,6 @@ export default function AdminRewardsPage() {
             <span className="text-lg leading-none">+</span> New Reward
           </button>
         </div>
-
-        {/* Alerts */}
-        {error && (
-          <div className="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            <span>⚠</span> <span>{error}</span>
-            <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">✕</button>
-          </div>
-        )}
-        {success && (
-          <div className="mb-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-sm">
-            <span>✓</span> {success}
-          </div>
-        )}
 
         {/* Form Modal */}
         {showForm && (
@@ -256,10 +237,10 @@ export default function AdminRewardsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">XP Cost *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Points Cost *</label>
                     <input
-                      type="number" min={1} value={form.xp_cost}
-                      onChange={e => setForm(f => ({ ...f, xp_cost: Number(e.target.value) }))}
+                      type="number" min={1} value={form.points_cost}
+                      onChange={e => setForm(f => ({ ...f, points_cost: Number(e.target.value) }))}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -354,7 +335,7 @@ export default function AdminRewardsPage() {
 
                     <div className="flex items-center gap-3 mb-3">
                       <div className="flex items-center gap-1.5 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
-                        <span>⭐</span> {reward.xp_cost} XP
+                        <span>⭐</span> {reward.points_cost} Pts
                       </div>
                       {reward.stock !== null && (
                         <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg text-xs font-semibold">

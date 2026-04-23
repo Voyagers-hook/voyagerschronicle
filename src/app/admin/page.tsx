@@ -129,6 +129,15 @@ export default function AdminPage() {
       supabase.from('fishing_tips').select('*').order('created_at'),
     ]);
 
+    // Detailed error logging to debug why data isn't showing
+    if (subsRes.error) console.error("Supabase Error (Submissions):", subsRes.error);
+    if (cardsRes.error) console.error("Supabase Error (Cards):", cardsRes.error);
+    if (rewardsRes.error) console.error("Supabase Error (Rewards):", rewardsRes.error);
+    if (membersRes.error) console.error("Supabase Error (Members):", membersRes.error);
+    if (qRes.error) console.error("Supabase Error (Quiz):", qRes.error);
+    if (factsRes.error) console.error("Supabase Error (Facts):", factsRes.error);
+    if (tipsRes.error) console.error("Supabase Error (Tips):", tipsRes.error);
+
     if (subsRes.data) setSubmissions(subsRes.data.map((s: any) => ({ ...s, username: s.user_profiles?.username })));
     if (cardsRes.data) setCards(cardsRes.data);
     if (rewardsRes.data) setRewards(rewardsRes.data);
