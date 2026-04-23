@@ -31,7 +31,7 @@ interface CatchSubmission {
 interface Card {
   id: string; card_number: number; name: string; species: string;
   rarity: typeof RARITIES[number]; power: number; stealth: number;
-  stamina: number; beauty: number; habitat: string; description: string | null;
+  energy: number; beauty: number; habitat: string; description: string | null;
   image_url: string | null; gradient: string; border_color: string; foil: boolean;
   drop_rate: number;
 }
@@ -85,7 +85,7 @@ export default function AdminPage() {
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [cardForm, setCardForm] = useState<Partial<Card>>({
     name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50,
-    stamina: 50, beauty: 50, habitat: '', description: '', foil: false, // Added default for foil
+    energy: 50, beauty: 50, habitat: '', description: '', foil: false, // Added default for foil
     gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6',
     image_url: '', drop_rate: 10
   });
@@ -95,7 +95,11 @@ export default function AdminPage() {
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const [rewardForm, setRewardForm] = useState<Partial<Reward>>({
     title: '', xp_cost: 100, reward_type: 'general', icon: 'GiftIcon',
+<<<<<<< HEAD
     active: true, description: '', stock: null, link: ''
+=======
+    active: true, probability_weight: 10, description: '', stock: null, link: ''
+>>>>>>> 39606ba696e121c2644de4092617930d242a0320
   });
 
   // Quiz form state
@@ -562,7 +566,7 @@ export default function AdminPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <p className="text-sm font-sans text-earth-400">{cards.length} cards in collection</p>
-              <button onClick={() => { setEditingCard(null); setCardForm({ name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50, stamina: 50, beauty: 50, habitat: '', description: '', foil: false, gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6', image_url: '', drop_rate: 10 }); setShowCardForm(true); }}
+              <button onClick={() => { setEditingCard(null); setCardForm({ name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50, energy: 50, beauty: 50, habitat: '', description: '', foil: false, gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6', image_url: '', drop_rate: 10 }); setShowCardForm(true); }}
                 className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
                 <Icon name="PlusCircleIcon" size={16} /> Add New Card
               </button>
@@ -602,7 +606,7 @@ export default function AdminPage() {
                     <p className="text-[10px] text-earth-400 mt-1 italic">Determines how often this card appears in random packs.</p>
                   </div>
                   <div className="md:col-span-2"><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={cardForm.description || ''} onChange={e => setCardForm(p => ({ ...p, description: e.target.value }))} /></div>
-                  {(['power', 'stealth', 'stamina', 'beauty'] as const).map(stat => (
+                  {(['power', 'stealth', 'energy', 'beauty'] as const).map(stat => (
                     <div key={stat}>
                       <label className={labelCls}>{stat.charAt(0).toUpperCase() + stat.slice(1)} <span className="text-primary-500 font-bold">{cardForm[stat]}</span></label>
                       <input type="range" min={1} max={100} value={cardForm[stat] || 50} onChange={e => setCardForm(p => ({ ...p, [stat]: Number(e.target.value) }))} className="w-full accent-orange-500" />
@@ -643,7 +647,7 @@ export default function AdminPage() {
                         <td className="px-4 py-3"><span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${RARITY_COLORS[card.rarity]}`}>{card.rarity}</span></td>
                         <td className="px-3 py-3 text-center font-display text-primary-700">{card.power}</td>
                         <td className="px-3 py-3 text-center font-display text-primary-700">{card.stealth}</td>
-                        <td className="px-3 py-3 text-center font-display text-primary-700">{card.stamina}</td>
+                        <td className="px-3 py-3 text-center font-display text-primary-700">{card.energy}</td>
                         <td className="px-3 py-3 text-center font-display text-primary-700">{card.beauty}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
@@ -665,7 +669,11 @@ export default function AdminPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-sans text-earth-400">{rewards.length} rewards available</p>
+<<<<<<< HEAD
               <button onClick={() => { setEditingReward(null); setRewardForm({ title: '', xp_cost: 100, reward_type: 'general', icon: 'GiftIcon', active: true, description: '', stock: null, link: '' }); setShowRewardForm(true); }}
+=======
+              <button onClick={() => { setEditingReward(null); setRewardForm({ title: '', xp_cost: 100, reward_type: 'general', icon: 'GiftIcon', probability_weight: 10, active: true, description: '', stock: null, link: '' }); setShowRewardForm(true); }}
+>>>>>>> 39606ba696e121c2644de4092617930d242a0320
                 className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
                 <Icon name="PlusCircleIcon" size={16} /> Add Reward Item
               </button>
@@ -676,7 +684,11 @@ export default function AdminPage() {
                 <h3 className="font-display text-xl text-primary-800 mb-5">{editingReward ? 'Edit Reward' : 'New Reward Item'}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div><label className={labelCls}>Reward Title</label><input className={inputCls} value={rewardForm.title || ''} onChange={e => setRewardForm(p => ({ ...p, title: e.target.value }))} /></div>
+<<<<<<< HEAD
                   <div><label className={labelCls}>XP Cost</label><input type="number" className={inputCls} value={rewardForm.xp_cost || 0} onChange={e => setRewardForm(p => ({ ...p, xp_cost: Number(e.target.value) }))} /></div>
+=======
+                  <div><label className={labelCls}>Points Cost</label><input type="number" className={inputCls} value={rewardForm.xp_cost || 0} onChange={e => setRewardForm(p => ({ ...p, xp_cost: Number(e.target.value) }))} /></div>
+>>>>>>> 39606ba696e121c2644de4092617930d242a0320
                   <div>
                     <label className={labelCls}>Type</label>
                     <select className={inputCls} value={rewardForm.reward_type} onChange={e => setRewardForm(p => ({ ...p, reward_type: e.target.value }))}>
@@ -733,7 +745,11 @@ export default function AdminPage() {
                       <div>
                         <p className="font-semibold text-primary-800 text-sm">{reward.title}</p>
                         <p className="text-xs text-earth-400">
+<<<<<<< HEAD
                           {reward.xp_cost} XP
+=======
+                          {reward.xp_cost} Pts · {reward.probability_weight}% Chance
+>>>>>>> 39606ba696e121c2644de4092617930d242a0320
                           {reward.stock !== null && ` · Stock: ${reward.stock}`}
                         </p>
                       </div>
