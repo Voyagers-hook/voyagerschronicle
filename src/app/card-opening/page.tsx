@@ -183,7 +183,7 @@ export default function CardOpeningPage() {
             {/* Cards row */}
             <div className="flex flex-wrap justify-center gap-6 mb-8">
               {revealedCards.map((card, idx) => {
-                const rarity = (card && card.rarity) ? rarityConfig[card.rarity] : { color: 'text-gray-500', label: 'Common' };
+                const rarity = (card && card.rarity && rarityConfig[card.rarity]) ? rarityConfig[card.rarity] : { color: 'text-gray-500', label: 'Common' };
                 return (
                   <div key={card.id + idx} className="relative" style={{ perspective: '800px' }}>
                     <div
