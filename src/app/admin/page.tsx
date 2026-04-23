@@ -86,7 +86,7 @@ export default function AdminPage() {
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [cardForm, setCardForm] = useState<Partial<Card>>({
     name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50,
-    stamina: 50, beauty: 50, habitat: '', description: '',
+    stamina: 50, beauty: 50, habitat: '', description: '', foil: false, // Added default for foil
     gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6',
     image_url: '', drop_rate: 10
   });
@@ -227,7 +227,7 @@ export default function AdminPage() {
       const lastNum = cards.reduce((max, c) => Math.max(max, c.card_number), 0);
       const nextNum = lastNum + 1;
       const { data, error } = await supabase.from('cards').insert({ ...cleanPayload, card_number: nextNum, total_cards: 24 }).select().single();
-      if (error) { showToast('Error adding card'); return; }
+      if (error) { console.error("Supabase insert error:", error); showToast('Error adding card: ' + error.message); return; }
       setCards(prev => [...prev, data]);
       showToast('Card added! ✓');
     }
@@ -552,9 +552,9 @@ export default function AdminPage() {
         {/* ── CARDS ── */}
         {tab === 'cards' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <p className="text-sm font-sans text-earth-400">{cards.length} cards in collection</p>
-              <button onClick={() => { setEditingCard(null); setCardForm({ name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50, stamina: 50, beauty: 50, habitat: '', description: '', gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6', image_url: '', drop_rate: 10 }); setShowCardForm(true); }}
+              <button onClick={() => { setEditingCard(null); setCardForm({ name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50, stamina: 50, beauty: 50, habitat: '', description: '', foil: false, gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6', image_url: '', drop_rate: 10 }); setShowCardForm(true); }}
                 className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
                 <Icon name="PlusCircleIcon" size={16} /> Add New Card
               </button>

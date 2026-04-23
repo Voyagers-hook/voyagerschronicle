@@ -2,8 +2,23 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
 
-const AuthContext = createContext<any>({});
+interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  preview: boolean;
+  signUp: (email: string, password: string, metadata?: any) => Promise<any>;
+  signIn: (email: string, password: string) => Promise<any>;
+  signOut: () => Promise<void>;
+  getCurrentUser: () => Promise<User | null>;
+  isEmailVerified: () => boolean;
+  isAdmin: () => boolean;
+  getUserProfile: () => Promise<any>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -14,8 +29,8 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<any>(null);
-  const [session, setSession] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
