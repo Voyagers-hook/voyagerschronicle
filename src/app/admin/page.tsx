@@ -14,56 +14,138 @@ const RARITY_COLORS: Record<string, string> = {
   Specimen:   'bg-blue-100 text-blue-700 border-blue-300',
   Legendary:  'bg-amber-100 text-amber-700 border-amber-300',
 };
-const ICON_OPTIONS = ['GiftIcon', 'TagIcon', 'TrophyIcon', 'StarIcon', 'SparklesIcon', 'EyeIcon', 'ClockIcon', 'MoonIcon', 'HeartIcon', 'BeakerIcon', 'MagnifyingGlassIcon', 'AcademicCapIcon', 'FireIcon', 'BoltIcon', 'GlobeAltIcon', 'ShieldCheckIcon', 'LightBulbIcon'];
+const ICON_OPTIONS = [
+  'GiftIcon', 'TagIcon', 'TrophyIcon', 'StarIcon', 'SparklesIcon',
+  'EyeIcon', 'ClockIcon', 'MoonIcon', 'HeartIcon', 'BeakerIcon',
+  'MagnifyingGlassIcon', 'AcademicCapIcon', 'FireIcon', 'BoltIcon',
+  'GlobeAltIcon', 'ShieldCheckIcon', 'LightBulbIcon',
+];
 
 const inputCls = 'w-full border border-adventure-border rounded-xl px-4 py-2.5 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white';
 const labelCls = 'block text-xs font-sans font-semibold text-earth-500 uppercase tracking-wide mb-1';
 const btnPrimary = 'flex items-center gap-2 text-white font-sans font-semibold text-sm px-4 py-2.5 rounded-xl transition-all active:scale-95';
 const btnGhost = 'flex items-center gap-2 font-sans font-semibold text-sm px-4 py-2.5 rounded-xl border border-adventure-border text-earth-500 hover:bg-adventure-bg transition-all';
 
-// ── Types ──────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────
 interface CatchSubmission {
-  id: string; user_id: string; species: string; weight_kg: number | null;
-  length_cm: number | null; location: string | null; notes: string | null;
-  catch_status: 'pending' | 'approved' | 'rejected'; submitted_at: string;
+  id: string;
+  user_id: string;
+  species: string;
+  weight_kg: number | null;
+  length_cm: number | null;
+  location: string | null;
+  notes: string | null;
+  catch_status: 'pending' | 'approved' | 'rejected';
+  submitted_at: string;
   username?: string;
 }
+
 interface Card {
-  id: string; card_number: number; name: string; species: string;
-  rarity: typeof RARITIES[number]; power: number; stealth: number;
-  energy: number; beauty: number; habitat: string; description: string | null;
-  image_url: string | null; gradient: string; border_color: string; foil: boolean;
-  probability_weight: number;
-}
-interface Reward {
-  id: string; title: string; description: string | null;
-  xp_cost: number; reward_type: string; icon: string; image_url: string | null;
-  active: boolean; stock: number | null; link: string | null;
-}
-interface Member {
-  id: string; username: string; email: string; level: number;
-  membership_tier: string; total_points: number;
-}
-interface QuizQuestion {
-  id: string; question: string; option_a: string; option_b: string;
-  option_c: string; option_d: string; correct_answer: string;
-  category: string; difficulty: string; active: boolean;
-}
-interface FunFact {
-  id: string; title: string; content: string; category: string;
-  icon_name: string; active: boolean;
-}
-interface FishingTip {
-  id: string; title: string; content: string; category: string;
-  difficulty: string; icon_name: string; active: boolean;
+  id: string;
+  card_number: number;
+  name: string;
+  species: string;
+  rarity: typeof RARITIES[number];
+  power: number;
+  stealth: number;
+  energy: number;
+  beauty: number;
+  habitat: string;
+  description: string | null;
+  image_url: string | null;
+  gradient: string;
+  border_color: string;
+  foil: boolean;
+  drop_rate: number;
 }
 
+// Exactly matches rewards_catalogue columns:
+// id, title, description, xp_cost, reward_type, icon, active,
+// stock, created_at, updated_at, link, image_url, probability_weight
+interface Reward {
+  id: string;
+  title: string;
+  description: string | null;
+  xp_cost: number;
+  reward_type: string;
+  icon: string;
+  active: boolean;
+  stock: number | null;
+  link: string | null;
+  image_url: string | null;
+  probability_weight: number | null;
+}
+
+interface Member {
+  id: string;
+  username: string;
+  email: string;
+  level: number;
+  membership_tier: string;
+  total_points: number;
+}
+
+interface QuizQuestion {
+  id: string;
+  question: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_answer: string;
+  category: string;
+  difficulty: string;
+  active: boolean;
+}
+
+interface FunFact {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  icon_name: string;
+  active: boolean;
+}
+
+interface FishingTip {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  difficulty: string;
+  icon_name: string;
+  active: boolean;
+}
+
+// ── Blank form defaults matching DB columns exactly ────────────────────────
+const blankReward: Omit<Reward, 'id'> = {
+  title: '',
+  description: '',
+  xp_cost: 100,
+  reward_type: 'general',
+  icon: 'GiftIcon',
+  active: true,
+  stock: null,
+  link: '',
+  image_url: '',
+  probability_weight: null,
+};
+
+const blankCard: Partial<Card> = {
+  name: '', species: '', rarity: 'Widespread',
+  power: 50, stealth: 50, energy: 50, beauty: 50,
+  habitat: '', description: '', foil: false,
+  gradient: 'from-blue-400 via-cyan-300 to-teal-400',
+  border_color: '#3B82F6', image_url: '', drop_rate: 10,
+};
+
+// ── Component ──────────────────────────────────────────────────────────────
 export default function AdminPage() {
   const supabase = createClient();
   const [tab, setTab] = useState<AdminTab>('catch-submissions');
   const [toast, setToast] = useState('');
 
-  // Data state
+  // Data
   const [submissions, setSubmissions] = useState<CatchSubmission[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
@@ -73,48 +155,51 @@ export default function AdminPage() {
   const [tips, setTips] = useState<FishingTip[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Send cards state
+  // Send-cards state
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [sendMode, setSendMode] = useState<'all' | 'select'>('all');
   const [rarityFilter, setRarityFilter] = useState<typeof RARITIES[number] | 'All'>('All');
   const [batchSize, setBatchSize] = useState(1);
   const [sending, setSending] = useState(false);
 
-  // Card form state
+  // Card form
   const [showCardForm, setShowCardForm] = useState(false);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
-  const [cardForm, setCardForm] = useState<Partial<Card>>({
-    name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50,
-    energy: 50, beauty: 50, habitat: '', description: '', foil: false, // Added default for foil
-    gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6',
-    image_url: '', probability_weight: 10
-  });
+  const [cardForm, setCardForm] = useState<Partial<Card>>(blankCard);
 
-  // Reward form state
+  // Reward form
   const [showRewardForm, setShowRewardForm] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
-  const [rewardForm, setRewardForm] = useState<Partial<Reward>>({
-    title: '', xp_cost: 100, reward_type: 'general', icon: 'GiftIcon',
-  });
+  const [rewardForm, setRewardForm] = useState<Omit<Reward, 'id'>>(blankReward);
 
-  // Quiz form state
+  // Quiz form
   const [showQForm, setShowQForm] = useState(false);
   const [editingQ, setEditingQ] = useState<QuizQuestion | null>(null);
-  const [qForm, setQForm] = useState({ question: '', option_a: '', option_b: '', option_c: '', option_d: '', correct_answer: 'A', category: 'Species', difficulty: 'Easy' });
+  const [qForm, setQForm] = useState({
+    question: '', option_a: '', option_b: '', option_c: '', option_d: '',
+    correct_answer: 'A', category: 'Species', difficulty: 'Easy',
+  });
 
-  // Fact form state
+  // Fact form
   const [showFactForm, setShowFactForm] = useState(false);
   const [editingFact, setEditingFact] = useState<FunFact | null>(null);
-  const [factForm, setFactForm] = useState<Partial<FunFact>>({ title: '', content: '', category: 'Biology', icon_name: 'SparklesIcon' });
+  const [factForm, setFactForm] = useState<Partial<FunFact>>({
+    title: '', content: '', category: 'Biology', icon_name: 'SparklesIcon',
+  });
 
-  // Tip form state
+  // Tip form
   const [showTipForm, setShowTipForm] = useState(false);
   const [editingTip, setEditingTip] = useState<FishingTip | null>(null);
-  const [tipForm, setTipForm] = useState<Partial<FishingTip>>({ title: '', content: '', category: 'General', difficulty: 'Beginner', icon_name: 'LightBulbIcon' });
+  const [tipForm, setTipForm] = useState<Partial<FishingTip>>({
+    title: '', content: '', category: 'General', difficulty: 'Beginner', icon_name: 'LightBulbIcon',
+  });
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
 
-  // ── Data fetching ──────────────────────────────────────────────
+  // ── Fetch all data ─────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     setLoading(true);
     const [subsRes, cardsRes, rewardsRes, membersRes, qRes, factsRes, tipsRes] = await Promise.all([
@@ -127,28 +212,27 @@ export default function AdminPage() {
       supabase.from('fishing_tips').select('*').order('created_at'),
     ]);
 
-    // Detailed error logging to debug why data isn't showing
-    if (subsRes.error) console.error("Supabase Error (Submissions):", subsRes.error);
-    if (cardsRes.error) console.error("Supabase Error (Cards):", cardsRes.error);
-    if (rewardsRes.error) console.error("Supabase Error (Rewards):", rewardsRes.error);
-    if (membersRes.error) console.error("Supabase Error (Members):", membersRes.error);
-    if (qRes.error) console.error("Supabase Error (Quiz):", qRes.error);
-    if (factsRes.error) console.error("Supabase Error (Facts):", factsRes.error);
-    if (tipsRes.error) console.error("Supabase Error (Tips):", tipsRes.error);
+    if (subsRes.error)    console.error('Submissions:', subsRes.error);
+    if (cardsRes.error)   console.error('Cards:', cardsRes.error);
+    if (rewardsRes.error) console.error('Rewards:', rewardsRes.error);
+    if (membersRes.error) console.error('Members:', membersRes.error);
+    if (qRes.error)       console.error('Quiz:', qRes.error);
+    if (factsRes.error)   console.error('Facts:', factsRes.error);
+    if (tipsRes.error)    console.error('Tips:', tipsRes.error);
 
-    if (subsRes.data) setSubmissions(subsRes.data.map((s: any) => ({ ...s, username: s.user_profiles?.username })));
-    if (cardsRes.data) setCards(cardsRes.data);
+    if (subsRes.data)    setSubmissions(subsRes.data.map((s: any) => ({ ...s, username: s.user_profiles?.username })));
+    if (cardsRes.data)   setCards(cardsRes.data);
     if (rewardsRes.data) setRewards(rewardsRes.data);
     if (membersRes.data) setMembers(membersRes.data);
-    if (qRes.data) setQuestions(qRes.data);
-    if (factsRes.data) setFacts(factsRes.data);
-    if (tipsRes.data) setTips(tipsRes.data);
+    if (qRes.data)       setQuestions(qRes.data);
+    if (factsRes.data)   setFacts(factsRes.data);
+    if (tipsRes.data)    setTips(tipsRes.data);
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // ── Catch submission handlers ──────────────────────────────────
+  // ── Catch submission handlers ──────────────────────────────────────────
   const handleCatchStatus = async (id: string, status: 'approved' | 'rejected') => {
     const { error } = await supabase
       .from('catch_submissions')
@@ -159,164 +243,164 @@ export default function AdminPage() {
     showToast(status === 'approved' ? 'Catch approved! ✓' : 'Catch rejected.');
   };
 
-  // ── Image Upload handler ───────────────────────────────────────
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'cards' | 'rewards') => {
+  // ── Image upload ───────────────────────────────────────────────────────
+  const handleFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    target: 'cards' | 'rewards',
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${type}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage.from('voyagers-images').upload(filePath, file);
+      const ext = file.name.split('.').pop();
+      const path = `${target}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('voyagers-images')
+        .upload(path, file);
       if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage.from('voyagers-images').getPublicUrl(filePath);
-      if (type === 'cards') {
-        setCardForm(prev => ({ ...prev, image_url: urlData.publicUrl }));
-      } else {
-        setRewardForm(prev => ({ ...prev, image_url: urlData.publicUrl }));
-      }
-      showToast('Image uploaded successfully! ✓');
+      const { data } = supabase.storage.from('voyagers-images').getPublicUrl(path);
+      if (target === 'cards')   setCardForm(p => ({ ...p, image_url: data.publicUrl }));
+      if (target === 'rewards') setRewardForm(p => ({ ...p, image_url: data.publicUrl }));
+      showToast('Image uploaded! ✓');
     } catch (err: any) {
       showToast('Upload failed: ' + err.message);
     }
   };
 
-  // ── Send cards handler ─────────────────────────────────────────
+  // ── Send cards ─────────────────────────────────────────────────────────
   const handleSendCards = async () => {
-    if (cards.length === 0) { showToast('No cards in the database yet.'); return; }
+    if (!cards.length) { showToast('No cards in the database yet.'); return; }
     const pool = rarityFilter === 'All' ? cards : cards.filter(c => c.rarity === rarityFilter);
-    if (pool.length === 0) { showToast(`No ${rarityFilter} cards found.`); return; }
-    
+    if (!pool.length) { showToast(`No ${rarityFilter} cards found.`); return; }
     const targets = sendMode === 'all' ? members : members.filter(m => selectedMembers.includes(m.id));
-    if (targets.length === 0) { showToast('Select at least one member.'); return; }
+    if (!targets.length) { showToast('Select at least one member.'); return; }
 
     setSending(true);
-    const totalWeight = pool.reduce((sum, c) => sum + (c._rate ?? 10), 0);
+    const totalWeight = pool.reduce((sum, c) => sum + (c.drop_rate ?? 10), 0);
     const rows: { user_id: string; card_id: string }[] = [];
 
     for (const member of targets) {
       for (let i = 0; i < batchSize; i++) {
         let rVal = Math.random() * totalWeight;
-        let selectedCard = pool[0];
+        let chosen = pool[0];
         for (const card of pool) {
-          const weight = card.probability_weight ?? 10;
-          if (rVal < weight) {
-            selectedCard = card;
-            break;
-          }
-          rVal -= weight;
+          if (rVal < (card.drop_rate ?? 10)) { chosen = card; break; }
+          rVal -= (card.drop_rate ?? 10);
         }
-        rows.push({ user_id: member.id, card_id: selectedCard.id });
+        rows.push({ user_id: member.id, card_id: chosen.id });
       }
     }
+
     const { error } = await supabase.from('user_cards').insert(rows);
     setSending(false);
     if (error) { showToast('Error sending cards: ' + error.message); return; }
-    showToast(`Sent ${batchSize} random card(s) to ${targets.length} member(s)! ✓`);
+    showToast(`Sent ${batchSize} card(s) to ${targets.length} member(s)! ✓`);
     setSelectedMembers([]);
   };
 
-  // ── Card handlers ──────────────────────────────────────────────
+  // ── Card CRUD ──────────────────────────────────────────────────────────
   const saveCard = async () => {
     if (!cardForm.name?.trim()) return;
-    const { id, ...payload } = cardForm;
+    // Strip the id field — let Supabase handle it
+    const { id: _id, ...payload } = cardForm as any;
 
     if (editingCard?.id) {
       const { error } = await supabase.from('cards').update(payload).eq('id', editingCard.id);
-      if (error) { showToast('Error updating card'); return; }
+      if (error) { showToast('Error: ' + error.message); return; }
       setCards(prev => prev.map(c => c.id === editingCard.id ? { ...c, ...payload } as Card : c));
       showToast('Card updated! ✓');
     } else {
-      // Ensure we don't send an empty ID or stray fields
-      const { id: _unused, ...cleanPayload } = payload as any;
-      const lastNum = cards.reduce((max, c) => Math.max(max, c.card_number), 0);
-      const nextNum = lastNum + 1;
-      const { data, error } = await supabase.from('cards').insert({ ...cleanPayload, card_number: nextNum, total_cards: 24 }).select().single();
-      if (error) { console.error("Supabase insert error:", error); showToast('Error adding card: ' + error.message); return; }
+      const nextNum = cards.reduce((max, c) => Math.max(max, c.card_number), 0) + 1;
+      const { data, error } = await supabase
+        .from('cards')
+        .insert({ ...payload, card_number: nextNum, total_cards: 24 })
+        .select()
+        .single();
+      if (error) { showToast('Error: ' + error.message); return; }
       setCards(prev => [...prev, data]);
       showToast('Card added! ✓');
     }
-    setShowCardForm(false); setEditingCard(null);
+    setShowCardForm(false);
+    setEditingCard(null);
   };
 
   const deleteCard = async (id: string) => {
     const { error } = await supabase.from('cards').delete().eq('id', id);
-    if (error) { showToast('Error deleting card'); return; }
+    if (error) { showToast('Error: ' + error.message); return; }
     setCards(prev => prev.filter(c => c.id !== id));
     showToast('Card deleted.');
   };
 
- const saveReward = async () => {
-  if (!rewardForm.title?.trim()) return;
+  // ── Reward CRUD ────────────────────────────────────────────────────────
+  const saveReward = async () => {
+    if (!rewardForm.title?.trim()) { showToast('Title is required.'); return; }
 
-  // 1. Clean the payload to match Supabase types exactly
-  const payload = {
-    title: rewardForm.title,
-    description: rewardForm.description || '',
-    xp_cost: Number(rewardForm.xp_cost) || 0,
-    reward_type: rewardForm.reward_type || 'general',
-    icon: rewardForm.icon || 'GiftIcon',
-    image_url: rewardForm.image_url || null,
-    active: typeof rewardForm.active === 'boolean' ? rewardForm.active : true, // Ensure it's a boolean
-    stock: rewardForm.stock ? Number(rewardForm.stock) : null,
-    link: rewardForm.link || null
+    // Build payload — only include columns that exist on rewards_catalogue
+    const payload = {
+      title:               rewardForm.title.trim(),
+      description:         rewardForm.description || null,
+      xp_cost:             Number(rewardForm.xp_cost),
+      reward_type:         rewardForm.reward_type,
+      icon:                rewardForm.icon,
+      active:              rewardForm.active,
+      stock:               rewardForm.stock ?? null,
+      link:                rewardForm.link || null,
+      image_url:           rewardForm.image_url || null,
+      probability_weight:  rewardForm.probability_weight ?? null,
+    };
+
+    if (editingReward?.id) {
+      const { error } = await supabase
+        .from('rewards_catalogue')
+        .update(payload)
+        .eq('id', editingReward.id);
+      if (error) { showToast('Error: ' + error.message); return; }
+      setRewards(prev => prev.map(r => r.id === editingReward.id ? { ...r, ...payload } as Reward : r));
+      showToast('Reward updated! ✓');
+    } else {
+      const { data, error } = await supabase
+        .from('rewards_catalogue')
+        .insert(payload)
+        .select()
+        .single();
+      if (error) { showToast('Error: ' + error.message); return; }
+      setRewards(prev => [...prev, data]);
+      showToast('Reward added! ✓');
+    }
+    setShowRewardForm(false);
+    setEditingReward(null);
   };
 
-  if (editingReward?.id) {
-    const { error } = await supabase
-      .from('rewards_catalogue')
-      .update(payload)
-      .eq('id', editingReward.id);
+  const deleteReward = async (id: string) => {
+    const { error } = await supabase.from('rewards_catalogue').delete().eq('id', id);
+    if (error) { showToast('Error: ' + error.message); return; }
+    setRewards(prev => prev.filter(r => r.id !== id));
+    showToast('Reward deleted.');
+  };
 
-    if (error) {
-      console.error("Reward Update Error:", error); // Check console for the specific column failing
-      showToast('Update Error: ' + error.message);
-      return;
-    }
-    setRewards(prev => prev.map(r => r.id === editingReward.id ? { ...r, ...payload } as Reward : r));
-    showToast('Reward updated! ✓');
-  } else {
-    const { data, error } = await supabase
-      .from('rewards_catalogue')
-      .insert([payload]) // Note: some Supabase versions prefer just the object, but [payload] is standard for bulk-safe inserts
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Reward Insert Error:", error);
-      showToast('Insert Error: ' + error.message);
-      return;
-    }
-    if (data) setRewards(prev => [...prev, data]);
-    showToast('Reward added! ✓');
-  }
-
-  setShowRewardForm(false);
-  setEditingReward(null);
-};
-
-  // ── Quiz handlers ──────────────────────────────────────────────
+  // ── Quiz CRUD ──────────────────────────────────────────────────────────
   const saveQuestion = async () => {
     if (!qForm.question.trim()) return;
     if (editingQ) {
       const { error } = await supabase.from('quiz_questions').update(qForm).eq('id', editingQ.id);
-      if (error) { showToast('Error updating question'); return; }
+      if (error) { showToast('Error: ' + error.message); return; }
       setQuestions(prev => prev.map(q => q.id === editingQ.id ? { ...q, ...qForm } : q));
       showToast('Question updated! ✓');
     } else {
-      const { data, error } = await supabase.from('quiz_questions').insert({ ...qForm, active: true }).select().single();
-      if (error) { showToast('Error adding question'); return; }
+      const { data, error } = await supabase
+        .from('quiz_questions')
+        .insert({ ...qForm, active: true })
+        .select().single();
+      if (error) { showToast('Error: ' + error.message); return; }
       setQuestions(prev => [...prev, data]);
       showToast('Question added! ✓');
     }
-    setShowQForm(false); setEditingQ(null);
+    setShowQForm(false);
+    setEditingQ(null);
   };
 
   const deleteQuestion = async (id: string) => {
     const { error } = await supabase.from('quiz_questions').delete().eq('id', id);
-    if (error) { showToast('Error deleting question'); return; }
+    if (error) { showToast('Error: ' + error.message); return; }
     setQuestions(prev => prev.filter(q => q.id !== id));
     showToast('Question deleted.');
   };
@@ -326,21 +410,25 @@ export default function AdminPage() {
     setQuestions(prev => prev.map(q => q.id === id ? { ...q, active: !active } : q));
   };
 
-  // ── Fun fact handlers ──────────────────────────────────────────
+  // ── Fun Fact CRUD ──────────────────────────────────────────────────────
   const saveFact = async () => {
     if (!factForm.title?.trim()) return;
     if (editingFact) {
       const { error } = await supabase.from('fun_facts').update(factForm).eq('id', editingFact.id);
-      if (error) { showToast('Error updating fact'); return; }
+      if (error) { showToast('Error: ' + error.message); return; }
       setFacts(prev => prev.map(f => f.id === editingFact.id ? { ...f, ...factForm } as FunFact : f));
       showToast('Fact updated! ✓');
     } else {
-      const { data, error } = await supabase.from('fun_facts').insert({ ...factForm, active: true }).select().single();
-      if (error) { showToast('Error adding fact'); return; }
+      const { data, error } = await supabase
+        .from('fun_facts')
+        .insert({ ...factForm, active: true })
+        .select().single();
+      if (error) { showToast('Error: ' + error.message); return; }
       setFacts(prev => [...prev, data]);
       showToast('Fact added! ✓');
     }
-    setShowFactForm(false); setEditingFact(null);
+    setShowFactForm(false);
+    setEditingFact(null);
   };
 
   const deleteFact = async (id: string) => {
@@ -354,21 +442,25 @@ export default function AdminPage() {
     setFacts(prev => prev.map(f => f.id === id ? { ...f, active: !active } : f));
   };
 
-  // ── Fishing tip handlers ───────────────────────────────────────
+  // ── Fishing Tip CRUD ───────────────────────────────────────────────────
   const saveTip = async () => {
     if (!tipForm.title?.trim()) return;
     if (editingTip) {
       const { error } = await supabase.from('fishing_tips').update(tipForm).eq('id', editingTip.id);
-      if (error) { showToast('Error updating tip'); return; }
+      if (error) { showToast('Error: ' + error.message); return; }
       setTips(prev => prev.map(t => t.id === editingTip.id ? { ...t, ...tipForm } as FishingTip : t));
       showToast('Tip updated! ✓');
     } else {
-      const { data, error } = await supabase.from('fishing_tips').insert({ ...tipForm, active: true }).select().single();
-      if (error) { showToast('Error adding tip'); return; }
+      const { data, error } = await supabase
+        .from('fishing_tips')
+        .insert({ ...tipForm, active: true })
+        .select().single();
+      if (error) { showToast('Error: ' + error.message); return; }
       setTips(prev => [...prev, data]);
       showToast('Tip added! ✓');
     }
-    setShowTipForm(false); setEditingTip(null);
+    setShowTipForm(false);
+    setEditingTip(null);
   };
 
   const deleteTip = async (id: string) => {
@@ -394,23 +486,22 @@ export default function AdminPage() {
     { key: 'fishing-tips',      label: 'Fishing Tips', iconName: 'BookmarkIcon' },
   ];
 
-  if (loading) {
-    return (
-      <AppLayout currentPath="/admin">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <Icon name="ArrowPathIcon" size={32} className="animate-spin text-orange-500 mx-auto mb-3" />
-            <p className="text-earth-400 font-sans text-sm">Loading admin data...</p>
-          </div>
+  if (loading) return (
+    <AppLayout currentPath="/admin">
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Icon name="ArrowPathIcon" size={32} className="animate-spin text-orange-500 mx-auto mb-3" />
+          <p className="text-earth-400 font-sans text-sm">Loading admin data...</p>
         </div>
-      </AppLayout>
-    );
-  }
+      </div>
+    </AppLayout>
+  );
 
   return (
     <AppLayout currentPath="/admin">
       <div className="fade-in space-y-5">
-        {/* Header */}
+
+        {/* ── Header ── */}
         <div className="relative overflow-hidden rounded-3xl p-6 lg:p-8" style={{ background: 'linear-gradient(135deg, #091408 0%, #1A3D28 50%, #2D6A4F 100%)' }}>
           <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #ff751f, transparent)', transform: 'translate(30%, -30%)' }} />
           <div className="relative z-10 flex items-center gap-4">
@@ -419,12 +510,14 @@ export default function AdminPage() {
             </div>
             <div>
               <h1 className="font-display text-3xl lg:text-4xl text-white">Admin Panel</h1>
-              <p className="text-primary-200 font-sans text-sm mt-0.5">{members.length} members · {cards.length} cards · {pendingCount} pending catches</p>
+              <p className="text-primary-200 font-sans text-sm mt-0.5">
+                {members.length} members · {cards.length} cards · {pendingCount} pending catches
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* ── Tabs ── */}
         <div className="flex flex-wrap items-center gap-1 bg-white rounded-2xl border border-adventure-border p-1.5 shadow-card">
           {tabs.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
@@ -439,7 +532,9 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* ── CATCH SUBMISSIONS ── */}
+        {/* ══════════════════════════════════════════════════════════════
+            CATCH SUBMISSIONS
+        ══════════════════════════════════════════════════════════════ */}
         {tab === 'catch-submissions' && (
           <div className="space-y-4">
             <p className="text-sm font-sans text-earth-400">{pendingCount} pending review · {submissions.length} total</p>
@@ -500,7 +595,9 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ── SEND CARDS ── */}
+        {/* ══════════════════════════════════════════════════════════════
+            SEND CARDS
+        ══════════════════════════════════════════════════════════════ */}
         {tab === 'send-cards' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-2xl border border-adventure-border shadow-card p-5">
@@ -518,13 +615,16 @@ export default function AdminPage() {
               {sendMode === 'select' && (
                 <div className="divide-y divide-adventure-border border border-adventure-border rounded-xl overflow-hidden max-h-80 overflow-y-auto">
                   {members.map(member => (
-                    <button key={member.id} onClick={() => setSelectedMembers(prev => prev.includes(member.id) ? prev.filter(id => id !== member.id) : [...prev, member.id])}
+                    <button key={member.id}
+                      onClick={() => setSelectedMembers(prev =>
+                        prev.includes(member.id) ? prev.filter(id => id !== member.id) : [...prev, member.id]
+                      )}
                       className={`w-full flex items-center gap-3 p-3 text-left transition-colors hover:bg-primary-50 ${selectedMembers.includes(member.id) ? 'bg-primary-50' : ''}`}>
                       <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedMembers.includes(member.id) ? 'border-orange-500 bg-orange-500' : 'border-earth-300'}`}>
                         {selectedMembers.includes(member.id) && <Icon name="CheckIcon" size={11} className="text-white" />}
                       </div>
                       <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-700 font-sans flex-shrink-0">
-                        {member.username.slice(0, 2).toUpperCase()}
+                        {(member.username || 'U').slice(0, 2).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-sans font-semibold text-primary-800 text-sm">{member.username}</p>
@@ -544,30 +644,26 @@ export default function AdminPage() {
             <div className="space-y-4">
               <div className="bg-white rounded-2xl border border-adventure-border shadow-card p-5">
                 <h2 className="font-display text-xl text-primary-800 mb-4">Distribution Settings</h2>
-                
                 <div className="mb-4">
                   <label className={labelCls}>Source Category</label>
-                  <select 
-                    className={inputCls} 
-                    value={rarityFilter} 
-                    onChange={(e) => setRarityFilter(e.target.value as any)}
-                  >
+                  <select className={inputCls} value={rarityFilter} onChange={e => setRarityFilter(e.target.value as any)}>
                     <option value="All">All Cards (Fully Random)</option>
                     {RARITIES.map(r => <option key={r} value={r}>{r} Only</option>)}
                   </select>
                 </div>
-
                 <label className={labelCls}>Cards Per Member</label>
                 <div className="flex items-center gap-4">
-                  <button onClick={() => setBatchSize(Math.max(1, batchSize - 1))} className="w-10 h-10 rounded-xl bg-adventure-bg border border-adventure-border flex items-center justify-center text-primary-700 hover:bg-primary-50 transition-colors font-bold text-lg">−</button>
+                  <button onClick={() => setBatchSize(Math.max(1, batchSize - 1))} className="w-10 h-10 rounded-xl bg-adventure-bg border border-adventure-border flex items-center justify-center text-primary-700 hover:bg-primary-50 font-bold text-lg">−</button>
                   <span className="font-display text-4xl text-primary-800 tabular-nums w-12 text-center">{batchSize}</span>
-                  <button onClick={() => setBatchSize(Math.min(10, batchSize + 1))} className="w-10 h-10 rounded-xl bg-adventure-bg border border-adventure-border flex items-center justify-center text-primary-700 hover:bg-primary-50 transition-colors font-bold text-lg">+</button>
+                  <button onClick={() => setBatchSize(Math.min(10, batchSize + 1))} className="w-10 h-10 rounded-xl bg-adventure-bg border border-adventure-border flex items-center justify-center text-primary-700 hover:bg-primary-50 font-bold text-lg">+</button>
                 </div>
               </div>
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
                 <p className="font-sans font-semibold text-amber-700 text-sm mb-1">Ready to send!</p>
                 <p className="text-amber-600 font-sans text-xs mb-3">
-                  Sending {batchSize} {rarityFilter !== 'All' ? rarityFilter.toLowerCase() : 'random'} card(s) to {sendMode === 'all' ? `all ${members.length} members` : `${selectedMembers.length} selected member(s)`}. Distribution respects your Chance Weights.
+                  Sending {batchSize} {rarityFilter !== 'All' ? rarityFilter.toLowerCase() : 'random'} card(s) to{' '}
+                  {sendMode === 'all' ? `all ${members.length} members` : `${selectedMembers.length} selected member(s)`}.
+                  Distribution respects each card's drop rate weight.
                 </p>
                 <button onClick={handleSendCards} disabled={sending}
                   className={`w-full ${btnPrimary} justify-center`} style={{ backgroundColor: '#ff751f' }}>
@@ -579,12 +675,15 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ── CARDS ── */}
+        {/* ══════════════════════════════════════════════════════════════
+            CARDS
+        ══════════════════════════════════════════════════════════════ */}
         {tab === 'cards' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <p className="text-sm font-sans text-earth-400">{cards.length} cards in collection</p>
-              <button onClick={() => { setEditingCard(null); setCardForm({ name: '', species: '', rarity: 'Widespread', power: 50, stealth: 50, energy: 50, beauty: 50, habitat: '', description: '', foil: false, gradient: 'from-blue-400 via-cyan-300 to-teal-400', border_color: '#3B82F6', image_url: '', probability_weight: 10 }); setShowCardForm(true); }}
+              <button
+                onClick={() => { setEditingCard(null); setCardForm(blankCard); setShowCardForm(true); }}
                 className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
                 <Icon name="PlusCircleIcon" size={16} /> Add New Card
               </button>
@@ -603,27 +702,25 @@ export default function AdminPage() {
                     </select>
                   </div>
                   <div><label className={labelCls}>Habitat</label><input className={inputCls} value={cardForm.habitat || ''} onChange={e => setCardForm(p => ({ ...p, habitat: e.target.value }))} /></div>
-                  <div className="md:col-span-2 flex flex-col">
+                  <div className="md:col-span-2">
                     <label className={labelCls}>Image</label>
                     <div className="flex gap-2">
                       <input className={inputCls} placeholder="https://..." value={cardForm.image_url || ''} onChange={e => setCardForm(p => ({ ...p, image_url: e.target.value }))} />
                       <label className="cursor-pointer bg-adventure-bg border border-adventure-border rounded-xl px-4 py-2.5 hover:bg-primary-50 transition-colors flex items-center justify-center shrink-0">
                         <Icon name="ArrowUpTrayIcon" size={16} className="text-primary-700" />
-                        <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'cards')} />
+                        <input type="file" className="hidden" accept="image/*" onChange={e => handleFileUpload(e, 'cards')} />
                       </label>
                     </div>
                   </div>
                   <div>
-                    <label className={labelCls}>Chance Weight (1-100)</label>
-                    <input 
-                      type="number" 
-                      className={inputCls} 
-                      value={cardForm.probability_weight || 10} 
-                      onChange={e => setCardForm(p => ({ ...p, probability_weight: Number(e.target.value) }))} 
-                    />
-                    <p className="text-[10px] text-earth-400 mt-1 italic">Determines how often this card appears in random packs.</p>
+                    <label className={labelCls}>Drop Rate % (1–100)</label>
+                    <input type="number" min={1} max={100} className={inputCls} value={cardForm.drop_rate ?? 10} onChange={e => setCardForm(p => ({ ...p, drop_rate: Number(e.target.value) }))} />
+                    <p className="text-[10px] text-earth-400 mt-1 italic">How often this card appears when opening packs.</p>
                   </div>
-                  <div className="md:col-span-2"><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={cardForm.description || ''} onChange={e => setCardForm(p => ({ ...p, description: e.target.value }))} /></div>
+                  <div className="md:col-span-2">
+                    <label className={labelCls}>Description</label>
+                    <textarea className={inputCls} rows={2} value={cardForm.description || ''} onChange={e => setCardForm(p => ({ ...p, description: e.target.value }))} />
+                  </div>
                   {(['power', 'stealth', 'energy', 'beauty'] as const).map(stat => (
                     <div key={stat}>
                       <label className={labelCls}>{stat.charAt(0).toUpperCase() + stat.slice(1)} <span className="text-primary-500 font-bold">{cardForm[stat]}</span></label>
@@ -636,7 +733,9 @@ export default function AdminPage() {
                   </div>
                 </div>
                 <div className="flex gap-3 mt-5">
-                  <button onClick={saveCard} className={btnPrimary} style={{ backgroundColor: '#ff751f' }}><Icon name="CheckIcon" size={15} />{editingCard ? 'Save Changes' : 'Add Card'}</button>
+                  <button onClick={saveCard} className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
+                    <Icon name="CheckIcon" size={15} />{editingCard ? 'Save Changes' : 'Add Card'}
+                  </button>
                   <button onClick={() => setShowCardForm(false)} className={btnGhost}>Cancel</button>
                 </div>
               </div>
@@ -652,8 +751,9 @@ export default function AdminPage() {
                       <th className="text-left px-4 py-3 text-xs font-semibold text-earth-400 uppercase tracking-wide">Rarity</th>
                       <th className="text-center px-3 py-3 text-xs font-semibold text-earth-400 uppercase tracking-wide">PWR</th>
                       <th className="text-center px-3 py-3 text-xs font-semibold text-earth-400 uppercase tracking-wide">STL</th>
-                      <th className="text-center px-3 py-3 text-xs font-semibold text-earth-400 uppercase tracking-wide">STA</th>
+                      <th className="text-center px-3 py-3 text-xs font-semibold text-earth-400 uppercase tracking-wide">ENG</th>
                       <th className="text-center px-3 py-3 text-xs font-semibold text-earth-400 uppercase tracking-wide">BTY</th>
+                      <th className="text-center px-3 py-3 text-xs font-semibold text-earth-400 uppercase tracking-wide">Drop%</th>
                       <th className="text-right px-4 py-3 text-xs font-semibold text-earth-400 uppercase tracking-wide">Actions</th>
                     </tr>
                   </thead>
@@ -661,16 +761,25 @@ export default function AdminPage() {
                     {cards.map(card => (
                       <tr key={card.id} className="hover:bg-primary-50/40 transition-colors">
                         <td className="px-4 py-3 text-xs text-earth-400 font-sans">#{card.card_number}</td>
-                        <td className="px-4 py-3"><div><p className="font-semibold text-primary-800">{card.name}</p><p className="text-xs text-earth-400 italic">{card.species}</p></div></td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            {card.image_url && <img src={card.image_url} alt="" className="w-8 h-8 rounded-lg object-cover border border-adventure-border" />}
+                            <div>
+                              <p className="font-semibold text-primary-800">{card.name}</p>
+                              <p className="text-xs text-earth-400 italic">{card.species}</p>
+                            </div>
+                          </div>
+                        </td>
                         <td className="px-4 py-3"><span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${RARITY_COLORS[card.rarity]}`}>{card.rarity}</span></td>
                         <td className="px-3 py-3 text-center font-display text-primary-700">{card.power}</td>
                         <td className="px-3 py-3 text-center font-display text-primary-700">{card.stealth}</td>
                         <td className="px-3 py-3 text-center font-display text-primary-700">{card.energy}</td>
                         <td className="px-3 py-3 text-center font-display text-primary-700">{card.beauty}</td>
+                        <td className="px-3 py-3 text-center text-xs font-sans font-semibold text-amber-600">{card.drop_rate}%</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
-                            <button onClick={() => { setEditingCard(card); setCardForm({ ...card }); setShowCardForm(true); }} className="p-1.5 rounded-lg text-earth-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"><Icon name="PencilSquareIcon" size={15} /></button>
-                            <button onClick={() => deleteCard(card.id)} className="p-1.5 rounded-lg text-earth-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Icon name="TrashIcon" size={15} /></button>
+                            <button onClick={() => { setEditingCard(card); setCardForm({ ...card }); setShowCardForm(true); }} className="p-1.5 rounded-lg text-earth-400 hover:text-primary-600 hover:bg-primary-50"><Icon name="PencilSquareIcon" size={15} /></button>
+                            <button onClick={() => deleteCard(card.id)} className="p-1.5 rounded-lg text-earth-400 hover:text-red-500 hover:bg-red-50"><Icon name="TrashIcon" size={15} /></button>
                           </div>
                         </td>
                       </tr>
@@ -682,35 +791,32 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ── REWARDS ── */}
+        {/* ══════════════════════════════════════════════════════════════
+            REWARDS
+        ══════════════════════════════════════════════════════════════ */}
         {tab === 'rewards' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-sans text-earth-400">{rewards.length} rewards available</p>
-              <button 
-  onClick={() => { 
-    setEditingReward(null); 
-    setRewardForm({ title: '', xp_cost: 100, reward_type: 'general', icon: 'GiftIcon', active: true, description: '', stock: null, link: '' }); 
-    setShowRewardForm(true); 
-  }}
-  className={btnPrimary} 
-  style={{ backgroundColor: '#ff751f' }}
->
-  <Icon name="PlusCircleIcon" size={16} /> Add Reward Item
-</button>
+              <button
+                onClick={() => { setEditingReward(null); setRewardForm(blankReward); setShowRewardForm(true); }}
+                className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
+                <Icon name="PlusCircleIcon" size={16} /> Add Reward Item
+              </button>
+            </div>
 
             {showRewardForm && (
               <div className="bg-white rounded-2xl border border-adventure-border shadow-card p-6 fade-in">
                 <h3 className="font-display text-xl text-primary-800 mb-5">{editingReward ? 'Edit Reward' : 'New Reward Item'}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div><label className={labelCls}>Reward Title</label><input className={inputCls} value={rewardForm.title || ''} onChange={e => setRewardForm(p => ({ ...p, title: e.target.value }))} /></div>
-                  <div><label className={labelCls}>XP Cost</label><input type="number" className={inputCls} value={rewardForm.xp_cost || 0} onChange={e => setRewardForm(p => ({ ...p, xp_cost: Number(e.target.value) }))} /></div>
+                  <div><label className={labelCls}>Reward Title *</label><input className={inputCls} value={rewardForm.title} onChange={e => setRewardForm(p => ({ ...p, title: e.target.value }))} /></div>
+                  <div><label className={labelCls}>XP Cost *</label><input type="number" min={1} className={inputCls} value={rewardForm.xp_cost} onChange={e => setRewardForm(p => ({ ...p, xp_cost: Number(e.target.value) }))} /></div>
                   <div>
                     <label className={labelCls}>Type</label>
                     <select className={inputCls} value={rewardForm.reward_type} onChange={e => setRewardForm(p => ({ ...p, reward_type: e.target.value }))}>
-                      <option value="card-pack">Card Pack</option>
-                      <option value="discount">Discount</option>
-                      <option value="external">External</option>
+                      {['general', 'discount', 'freebie', 'merch', 'experience', 'card-pack', 'external'].map(t => (
+                        <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -719,29 +825,43 @@ export default function AdminPage() {
                       {ICON_OPTIONS.map(opt => <option key={opt} value={opt}>{opt.replace('Icon', '')}</option>)}
                     </select>
                   </div>
-                  <div className="md:col-span-2 flex flex-col">
-                    <label className={labelCls}>
-                      <input type="checkbox" className="mr-2" checked={rewardForm.active} onChange={e => setRewardForm(p => ({ ...p, active: e.target.checked }))} />
-                      Active (Visible to members)
-                    </label>
-                  </div>
-                  <div className="md:col-span-2 flex flex-col">
+                  <div className="md:col-span-2">
                     <label className={labelCls}>Image</label>
                     <div className="flex gap-2">
                       <input className={inputCls} placeholder="https://..." value={rewardForm.image_url || ''} onChange={e => setRewardForm(p => ({ ...p, image_url: e.target.value }))} />
                       <label className="cursor-pointer bg-adventure-bg border border-adventure-border rounded-xl px-4 py-2.5 hover:bg-primary-50 transition-colors flex items-center justify-center shrink-0">
                         <Icon name="ArrowUpTrayIcon" size={16} className="text-primary-700" />
-                        <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'rewards')} />
+                        <input type="file" className="hidden" accept="image/*" onChange={e => handleFileUpload(e, 'rewards')} />
                       </label>
                     </div>
                   </div>
-                  <div className="md:col-span-2"><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={rewardForm.description || ''} onChange={e => setRewardForm(p => ({ ...p, description: e.target.value }))} /></div>
-                  <div><label className={labelCls}>Stock (Leave empty for unlimited)</label><input type="number" className={inputCls} value={rewardForm.stock || ''} onChange={e => setRewardForm(p => ({ ...p, stock: e.target.value ? Number(e.target.value) : null }))} /></div>
-                 
-                  <div className="md:col-span-2"><label className={labelCls}>External Link (Optional)</label><input className={inputCls} value={rewardForm.link || ''} onChange={e => setRewardForm(p => ({ ...p, link: e.target.value }))} /></div>
+                  <div className="md:col-span-2">
+                    <label className={labelCls}>Description</label>
+                    <textarea className={inputCls} rows={2} value={rewardForm.description || ''} onChange={e => setRewardForm(p => ({ ...p, description: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Stock Limit (blank = unlimited)</label>
+                    <input type="number" min={1} className={inputCls} value={rewardForm.stock ?? ''} onChange={e => setRewardForm(p => ({ ...p, stock: e.target.value ? Number(e.target.value) : null }))} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>External Link (optional)</label>
+                    <input className={inputCls} placeholder="https://..." value={rewardForm.link || ''} onChange={e => setRewardForm(p => ({ ...p, link: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-2 flex items-center gap-3 bg-adventure-bg rounded-xl px-4 py-3 border border-adventure-border">
+                    <button onClick={() => setRewardForm(p => ({ ...p, active: !p.active }))}
+                      className={`w-10 h-6 rounded-full relative transition-colors flex-shrink-0 ${rewardForm.active ? 'bg-primary-500' : 'bg-earth-300'}`}>
+                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${rewardForm.active ? 'left-4' : 'left-0.5'}`} />
+                    </button>
+                    <div>
+                      <p className="text-sm font-sans font-semibold text-primary-700">Visible to members</p>
+                      <p className="text-xs font-sans text-earth-400">Hidden rewards cannot be redeemed</p>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex gap-3 mt-5">
-                  <button onClick={saveReward} className={btnPrimary} style={{ backgroundColor: '#ff751f' }}><Icon name="CheckIcon" size={15} />Save Reward</button>
+                  <button onClick={saveReward} className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
+                    <Icon name="CheckIcon" size={15} />Save Reward
+                  </button>
                   <button onClick={() => setShowRewardForm(false)} className={btnGhost}>Cancel</button>
                 </div>
               </div>
@@ -753,7 +873,7 @@ export default function AdminPage() {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
                       {reward.image_url ? (
-                        <img src={reward.image_url} className="w-12 h-12 rounded-lg object-cover border" />
+                        <img src={reward.image_url} alt="" className="w-12 h-12 rounded-lg object-cover border border-adventure-border" />
                       ) : (
                         <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center">
                           <Icon name={reward.icon as any} size={24} className="text-orange-500" />
@@ -762,30 +882,39 @@ export default function AdminPage() {
                       <div>
                         <p className="font-semibold text-primary-800 text-sm">{reward.title}</p>
                         <p className="text-xs text-earth-400">
-                          {reward.xp_cost} Pts · {reward.probability_weight}% Chance
+                          {reward.xp_cost} XP
                           {reward.stock !== null && ` · Stock: ${reward.stock}`}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                        <span className={`w-2 h-2 rounded-full ${reward.active ? 'bg-green-500' : 'bg-red-500'}`} title={reward.active ? 'Active' : 'Inactive'} />
-                        <button onClick={() => { setEditingReward(reward); setRewardForm({...reward}); setShowRewardForm(true); }} className="p-1.5 text-earth-400 hover:text-primary-600"><Icon name="PencilSquareIcon" size={15} /></button>
-                        <button onClick={() => deleteReward(reward.id)} className="p-1.5 text-earth-400 hover:text-red-500"><Icon name="TrashIcon" size={15} /></button>
+                      <span className={`w-2 h-2 rounded-full ${reward.active ? 'bg-green-500' : 'bg-red-500'}`} title={reward.active ? 'Active' : 'Inactive'} />
+                      <button onClick={() => { setEditingReward(reward); setRewardForm({ title: reward.title, description: reward.description, xp_cost: reward.xp_cost, reward_type: reward.reward_type, icon: reward.icon, active: reward.active, stock: reward.stock, link: reward.link, image_url: reward.image_url, probability_weight: reward.probability_weight }); setShowRewardForm(true); }} className="p-1.5 text-earth-400 hover:text-primary-600"><Icon name="PencilSquareIcon" size={15} /></button>
+                      <button onClick={() => deleteReward(reward.id)} className="p-1.5 text-earth-400 hover:text-red-500"><Icon name="TrashIcon" size={15} /></button>
                     </div>
                   </div>
-                  {reward.description && <p className="text-xs text-earth-500 line-clamp-2 mt-1">{reward.description}</p>}
+                  {reward.description && <p className="text-xs text-earth-500 line-clamp-2">{reward.description}</p>}
                 </div>
               ))}
+              {rewards.length === 0 && (
+                <div className="md:col-span-3 bg-white rounded-2xl border border-adventure-border p-12 text-center">
+                  <Icon name="GiftIcon" size={40} className="text-earth-300 mx-auto mb-3" />
+                  <p className="text-earth-400 font-sans">No rewards yet. Add one above!</p>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* ── QUIZ MANAGER ── */}
+        {/* ══════════════════════════════════════════════════════════════
+            QUIZ MANAGER
+        ══════════════════════════════════════════════════════════════ */}
         {tab === 'quiz-manager' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-sans text-earth-400">{questions.length} questions · {questions.filter(q => q.active).length} active</p>
-              <button onClick={() => { setEditingQ(null); setQForm({ question: '', option_a: '', option_b: '', option_c: '', option_d: '', correct_answer: 'A', category: 'Species', difficulty: 'Easy' }); setShowQForm(true); }}
+              <button
+                onClick={() => { setEditingQ(null); setQForm({ question: '', option_a: '', option_b: '', option_c: '', option_d: '', correct_answer: 'A', category: 'Species', difficulty: 'Easy' }); setShowQForm(true); }}
                 className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
                 <Icon name="PlusCircleIcon" size={16} /> Add Question
               </button>
@@ -806,13 +935,13 @@ export default function AdminPage() {
                     <div>
                       <label className={labelCls}>Category</label>
                       <select className={inputCls} value={qForm.category} onChange={e => setQForm(p => ({ ...p, category: e.target.value }))}>
-                        {['Species', 'Techniques', 'Conservation', 'Regulations', 'Habitat', 'Gear', 'General'].map(c => <option key={c} value={c}>{c}</option>)}
+                        {['Species', 'Techniques', 'Conservation', 'Regulations', 'Habitat', 'Gear', 'General'].map(c => <option key={c}>{c}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className={labelCls}>Difficulty</label>
                       <select className={inputCls} value={qForm.difficulty} onChange={e => setQForm(p => ({ ...p, difficulty: e.target.value }))}>
-                        {['Easy', 'Medium', 'Hard'].map(d => <option key={d} value={d}>{d}</option>)}
+                        {['Easy', 'Medium', 'Hard'].map(d => <option key={d}>{d}</option>)}
                       </select>
                     </div>
                   </div>
@@ -842,13 +971,15 @@ export default function AdminPage() {
                     </div>
                   </div>
                 ))}
-                {questions.length === 0 && <div className="p-8 text-center text-earth-400 font-sans text-sm">No questions yet. Add one above!</div>}
+                {questions.length === 0 && <div className="p-8 text-center text-earth-400 font-sans text-sm">No questions yet.</div>}
               </div>
             </div>
           </div>
         )}
 
-        {/* ── FUN FACTS ── */}
+        {/* ══════════════════════════════════════════════════════════════
+            FUN FACTS
+        ══════════════════════════════════════════════════════════════ */}
         {tab === 'fun-facts' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -876,7 +1007,7 @@ export default function AdminPage() {
               <div className="divide-y divide-adventure-border">
                 {facts.map(fact => (
                   <div key={fact.id} className="flex items-start gap-4 p-4 hover:bg-primary-50/50 transition-colors">
-                    <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0"><Icon name={fact.icon_name as Parameters<typeof Icon>[0]['name']} size={18} className="text-primary-500" /></div>
+                    <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0"><Icon name={fact.icon_name as any} size={18} className="text-primary-500" /></div>
                     <div className="flex-1 min-w-0">
                       <p className="font-sans font-semibold text-sm text-primary-800">{fact.title}</p>
                       <p className="text-xs font-sans text-earth-400 mt-0.5 line-clamp-2">{fact.content}</p>
@@ -889,13 +1020,15 @@ export default function AdminPage() {
                     </div>
                   </div>
                 ))}
-                {facts.length === 0 && <div className="p-8 text-center text-earth-400 font-sans text-sm">No fun facts yet. Add one above!</div>}
+                {facts.length === 0 && <div className="p-8 text-center text-earth-400 font-sans text-sm">No fun facts yet.</div>}
               </div>
             </div>
           </div>
         )}
 
-       {/* ── FISHING TIPS ── */}
+        {/* ══════════════════════════════════════════════════════════════
+            FISHING TIPS
+        ══════════════════════════════════════════════════════════════ */}
         {tab === 'fishing-tips' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -939,7 +1072,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                 ))}
-                {tips.length === 0 && <div className="p-8 text-center text-earth-400 font-sans text-sm">No tips yet. Add one above!</div>}
+                {tips.length === 0 && <div className="p-8 text-center text-earth-400 font-sans text-sm">No tips yet.</div>}
               </div>
             </div>
           </div>
@@ -953,7 +1086,5 @@ export default function AdminPage() {
         )}
       </div>
     </AppLayout>
-  );
-}
   );
 }
