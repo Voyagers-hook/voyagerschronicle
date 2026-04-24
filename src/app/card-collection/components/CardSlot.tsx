@@ -163,17 +163,16 @@ export default function CardSlot({ card, onClick }: CardSlotProps) {
             )}
           </div>
 
-          {/* Card footer */}
-          <div className="bg-white px-2 py-1.5 relative">
-            {/* Legendary gold shimmer on footer */}
-            {card.rarity === 'Legendary' && (
-              <div className="absolute inset-0 opacity-20" style={{ background: 'linear-gradient(90deg, transparent, rgba(245,158,11,0.5), transparent)', backgroundSize: '200% 100%', animation: 'foilShimmer 2s ease infinite' }} />
-            )}
-     
+      {/* Legendary gold shimmer over image */}
+          {card.rarity === 'Legendary' && (
+            <div className="absolute inset-0 opacity-20 pointer-events-none z-10"
+              style={{ background: 'linear-gradient(90deg, transparent, rgba(245,158,11,0.5), transparent)', backgroundSize: '200% 100%', animation: 'foilShimmer 2s ease infinite' }} />
+          )}
+        </div>
+
         {/* Outer glow ring on hover */}
         {hovered && (
-          <div
-            className="absolute inset-0 rounded-2xl pointer-events-none"
+          <div className="absolute inset-0 rounded-2xl pointer-events-none"
             style={{
               boxShadow: isShiny
                 ? `0 0 0 2px ${card.borderColor}, 0 0 40px 8px ${rarityGlowColors[card.rarity]}`
