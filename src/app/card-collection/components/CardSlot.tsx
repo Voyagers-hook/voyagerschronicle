@@ -130,17 +130,20 @@ export default function CardSlot({ card, onClick }: CardSlotProps) {
               />
             )}
 
-            {/* Card image or icon */}
-            <div className="relative z-10 flex flex-col items-center">
-              {card.image ? (
-                <img src={card.image} alt={card.name} className="w-12 h-12 object-cover rounded-xl mb-1 shadow-lg" />
-              ) : (
-                <div className="w-12 h-12 rounded-xl bg-white/25 flex items-center justify-center mb-1 shadow-lg border border-white/30">
-                  <Icon name="SparklesIcon" size={22} className="text-white" />
-                </div>
-              )}
-              <p className="text-white font-display text-sm text-center mt-1 leading-tight drop-shadow-lg">{card.name}</p>
-            </div>
+           {/* Card image or icon */}
+{card.image ? (
+  <div className="absolute inset-0 z-0">
+    <img src={card.image} alt={card.name} className="w-full h-full object-cover" />
+    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+  </div>
+) : (
+  <div className="relative z-10 flex flex-col items-center">
+    <div className="w-12 h-12 rounded-xl bg-white/25 flex items-center justify-center mb-1 shadow-lg border border-white/30">
+      <Icon name="SparklesIcon" size={22} className="text-white" />
+    </div>
+  </div>
+)}
+<p className="relative z-10 text-white font-display text-sm text-center mt-1 leading-tight drop-shadow-lg absolute bottom-2 left-0 right-0 px-2">{card.name}</p>
 
             {/* Rarity crown for Legendary */}
             {card.rarity === 'Legendary' && (
