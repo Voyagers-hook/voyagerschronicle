@@ -394,16 +394,18 @@ export default function AdminPage() {
     { key: 'fishing-tips',      label: 'Fishing Tips', iconName: 'BookmarkIcon' },
   ];
 
-  if (loading) return (
-    <AppLayout currentPath="/admin">
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Icon name="ArrowPathIcon" size={32} className="animate-spin text-orange-500 mx-auto mb-3" />
-          <p className="text-earth-400 font-sans text-sm">Loading admin data...</p>
+  if (loading) {
+    return (
+      <AppLayout currentPath="/admin">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Icon name="ArrowPathIcon" size={32} className="animate-spin text-orange-500 mx-auto mb-3" />
+            <p className="text-earth-400 font-sans text-sm">Loading admin data...</p>
+          </div>
         </div>
-      </div>
-    </AppLayout>
-  );
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout currentPath="/admin">
@@ -685,11 +687,17 @@ export default function AdminPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-sans text-earth-400">{rewards.length} rewards available</p>
-              <button onClick={() => { setEditingReward(null); setRewardForm({ title: '', xp_cost: 100, reward_type: 'general', icon: 'GiftIcon', active: true, description: '', stock: null, link: '' })
-                className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
-                <Icon name="PlusCircleIcon" size={16} /> Add Reward Item
-              </button>
-            </div>
+              <button 
+  onClick={() => { 
+    setEditingReward(null); 
+    setRewardForm({ title: '', xp_cost: 100, reward_type: 'general', icon: 'GiftIcon', active: true, description: '', stock: null, link: '' }); 
+    setShowRewardForm(true); 
+  }}
+  className={btnPrimary} 
+  style={{ backgroundColor: '#ff751f' }}
+>
+  <Icon name="PlusCircleIcon" size={16} /> Add Reward Item
+</button>
 
             {showRewardForm && (
               <div className="bg-white rounded-2xl border border-adventure-border shadow-card p-6 fade-in">
