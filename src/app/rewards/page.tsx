@@ -31,7 +31,10 @@ export default function RewardsPage() {
     Promise.all([
       supabase.from('user_profiles').select('total_points').eq('id', user.id).single(),
       supabase.from('rewards_redemptions').select('reward_label, xp_cost, redeemed_at').eq('user_id', user.id).order('redeemed_at', { ascending: false }).limit(5),
-      supabase.from('rewards_catalogue').select('*').eq('active', true).order('xp_cost', { ascending: true })
+    supabase.from('rewards_catalogue')
+  .select('id, title, description, xp_cost, reward_type, icon, image_url, active') // Explicitly list columns
+  .eq('active', true)
+  .order('xp_cost', { ascending: true })
     ]).then(([profResult, redsResult, rewardsResult]) => {
       if (rewardsResult.error) {
         console.error("Error fetching rewards:", rewardsResult.error);
