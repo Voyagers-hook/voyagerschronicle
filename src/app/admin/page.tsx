@@ -39,7 +39,6 @@ interface Reward {
   id: string; title: string; description: string | null;
   xp_cost: number; reward_type: string; icon: string; image_url: string | null;
   active: boolean; stock: number | null; link: string | null;
-  probability_weight: number;
 }
 interface Member {
   id: string; username: string; email: string; level: number;
@@ -96,7 +95,6 @@ export default function AdminPage() {
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const [rewardForm, setRewardForm] = useState<Partial<Reward>>({
     title: '', xp_cost: 100, reward_type: 'general', icon: 'GiftIcon',
-    active: true, probability_weight: 10, description: '', stock: null, link: ''
   });
 
   // Quiz form state
@@ -251,60 +249,54 @@ export default function AdminPage() {
   };
 
  // ── Reward handlers ──────────────────────────────────────────
-  const saveReward = async () => {
-    if (!rewardForm.title?.trim()) return;
+ const saveReward = async () => {
+  if (!rewardForm.title?.trim()) return;
 
-    // We create a clean object with ONLY the columns that exist in Supabase
-    const payload = {
-      title: rewardForm.title,
-      description: rewardForm.description,
-      xp_cost: Number(rewardForm.xp_cost), // Ensure it's a number
-      reward_type: rewardForm.reward_type,
-      icon: rewardForm.icon,
-      image_url: rewardForm.image_url,
-      active: rewardForm.active,
-      stock: rewardForm.stock ? Number(rewardForm.stock) : null,
-      link: rewardForm.link,
-      // If 'probability_weight' does NOT exist in your Supabase table, 
-      // do NOT include it here.
-    };
-
-    if (editingReward?.id) {
-      // Update
-      const { error } = await supabase
-        .from('rewards_catalogue')
-        .update(payload)
-        .eq('id', editingReward.id);
-
-      if (error) {
-        console.error("Supabase Update Error:", error); // Check your browser console for the real reason!
-        showToast('Error: ' + error.message);
-        return;
-      }
-
-      setRewards(prev => prev.map(r => r.id === editingReward.id ? { ...r, ...payload } as Reward : r));
-      showToast('Reward updated! ✓');
-    } else {
-      // Insert
-      const { data, error } = await supabase
-        .from('rewards_catalogue')
-        .insert([payload]) // Wrapping in an array is safer for some Supabase versions
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Supabase Insert Error:", error);
-        showToast('Error: ' + error.message);
-        return;
-      }
-
-      if (data) setRewards(prev => [...prev, data]);
-      showToast('Reward added! ✓');
-    }
-
-    setShowRewardForm(false);
-    setEditingReward(null);
+  // We explicitly define the payload to ONLY include what is in your DB
+  const payload = {
+    title: rewardForm.title,
+    description: rewardForm.description,
+    xp_cost: Number(rewardForm.xp_cost),
+    reward_type: rewardForm.reward_type,
+    icon: rewardForm.icon,
+    image_url: rewardForm.image_url,
+    active: rewardForm.active,
+    stock: rewardForm.stock ? Number(rewardForm.stock) : null,
+    link: rewardForm.link
   };
+
+  if (editingReward?.id) {
+    // UPDATE existing
+    const { error } = await supabase
+      .from('rewards_catalogue')
+      .update(payload)
+      .eq('id', editingReward.id);
+
+    if (error) {
+      showToast('Update Error: ' + error.message);
+      return;
+    }
+    setRewards(prev => prev.map(r => r.id === editingReward.id ? { ...r, ...payload } as Reward : r));
+    showToast('Reward updated! ✓');
+  } else {
+    // INSERT new
+    const { data, error } = await supabase
+      .from('rewards_catalogue')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      showToast('Insert Error: ' + error.message);
+      return;
+    }
+    if (data) setRewards(prev => [...prev, data]);
+    showToast('Reward added! ✓');
+  }
+
+  setShowRewardForm(false);
+  setEditingReward(null);
+};
 
   // ── Quiz handlers ──────────────────────────────────────────────
   const saveQuestion = async () => {
@@ -694,7 +686,7 @@ export default function AdminPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-sans text-earth-400">{rewards.length} rewards available</p>
-              <button onClick={() => { setEditingReward(null); setRewardForm({ title: '', xp_cost: 100, reward_type: 'general', icon: 'GiftIcon', probability_weight: 10, active: true, description: '', stock: null, link: '' }); setShowRewardForm(true); }}
+              <button onClick={() => { setEditingReward(null); setRewardForm({ title: '', xp_cost: 100, reward_type: 'general', icon: 'GiftIcon', active: true, description: '', stock: null, link: '' })
                 className={btnPrimary} style={{ backgroundColor: '#ff751f' }}>
                 <Icon name="PlusCircleIcon" size={16} /> Add Reward Item
               </button>
@@ -738,7 +730,7 @@ export default function AdminPage() {
                   </div>
                   <div className="md:col-span-2"><label className={labelCls}>Description</label><textarea className={inputCls} rows={2} value={rewardForm.description || ''} onChange={e => setRewardForm(p => ({ ...p, description: e.target.value }))} /></div>
                   <div><label className={labelCls}>Stock (Leave empty for unlimited)</label><input type="number" className={inputCls} value={rewardForm.stock || ''} onChange={e => setRewardForm(p => ({ ...p, stock: e.target.value ? Number(e.target.value) : null }))} /></div>
-                  <div><label className={labelCls}>Probability Weight (1-100)</label><input type="number" className={inputCls} value={rewardForm.probability_weight || 10} onChange={e => setRewardForm(p => ({ ...p, probability_weight: Number(e.target.value) }))} /></div>
+                 
                   <div className="md:col-span-2"><label className={labelCls}>External Link (Optional)</label><input className={inputCls} value={rewardForm.link || ''} onChange={e => setRewardForm(p => ({ ...p, link: e.target.value }))} /></div>
                 </div>
                 <div className="flex gap-3 mt-5">
