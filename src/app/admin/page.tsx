@@ -61,7 +61,7 @@ interface Card {
 
 // Exactly matches rewards_catalogue columns:
 // id, title, description, xp_cost, reward_type, icon, active,
-// stock, created_at, updated_at, link, image_url, probability_weight
+// stock, created_at, updated_at, link, image_url,
 interface Reward {
   id: string;
   title: string;
@@ -73,7 +73,6 @@ interface Reward {
   stock: number | null;
   link: string | null;
   image_url: string | null;
-  probability_weight: number | null;
 }
 
 interface Member {
@@ -128,7 +127,6 @@ const blankReward: Omit<Reward, 'id'> = {
   stock: null,
   link: '',
   image_url: '',
-  probability_weight: null,
 };
 
 const blankCard: Partial<Card> = {
@@ -345,7 +343,6 @@ export default function AdminPage() {
       stock:               rewardForm.stock ?? null,
       link:                rewardForm.link || null,
       image_url:           rewardForm.image_url || null,
-      probability_weight:  rewardForm.probability_weight ?? null,
     };
 
     if (editingReward?.id) {
@@ -889,7 +886,7 @@ export default function AdminPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <span className={`w-2 h-2 rounded-full ${reward.active ? 'bg-green-500' : 'bg-red-500'}`} title={reward.active ? 'Active' : 'Inactive'} />
-                      <button onClick={() => { setEditingReward(reward); setRewardForm({ title: reward.title, description: reward.description, xp_cost: reward.xp_cost, reward_type: reward.reward_type, icon: reward.icon, active: reward.active, stock: reward.stock, link: reward.link, image_url: reward.image_url, probability_weight: reward.probability_weight }); setShowRewardForm(true); }} className="p-1.5 text-earth-400 hover:text-primary-600"><Icon name="PencilSquareIcon" size={15} /></button>
+                      <button onClick={() => { setEditingReward(reward); setRewardForm({ title: reward.title, description: reward.description, xp_cost: reward.xp_cost, reward_type: reward.reward_type, icon: reward.icon, active: reward.active, stock: reward.stock, link: reward.link, image_url: reward.image_url, }); setShowRewardForm(true); }} className="p-1.5 text-earth-400 hover:text-primary-600"><Icon name="PencilSquareIcon" size={15} /></button>
                       <button onClick={() => deleteReward(reward.id)} className="p-1.5 text-earth-400 hover:text-red-500"><Icon name="TrashIcon" size={15} /></button>
                     </div>
                   </div>
