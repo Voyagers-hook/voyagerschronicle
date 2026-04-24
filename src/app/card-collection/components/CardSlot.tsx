@@ -169,14 +169,7 @@ export default function CardSlot({ card, onClick }: CardSlotProps) {
             {card.rarity === 'Legendary' && (
               <div className="absolute inset-0 opacity-20" style={{ background: 'linear-gradient(90deg, transparent, rgba(245,158,11,0.5), transparent)', backgroundSize: '200% 100%', animation: 'foilShimmer 2s ease infinite' }} />
             )}
-            <div className="flex items-center justify-between relative z-10">
-              <span className={`text-xs font-sans font-bold ${rarity.color}`}>{card.rarity}</span>
-              <span className="text-xs font-sans font-semibold text-red-500">P:{card.power}</span>
-            </div>
-            <p className="text-xs font-sans text-earth-400 truncate relative z-10">{card.habitat}</p>
-          </div>
-        </div>
-
+     
         {/* Outer glow ring on hover */}
         {hovered && (
           <div
