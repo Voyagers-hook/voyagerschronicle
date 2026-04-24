@@ -5,6 +5,8 @@ import AppLayout from '@/components/AppLayout';
 import Icon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 
+export const dynamic = 'force-dynamic';
+
 interface AnalyticsData {
   totalMembers: number;
   totalCards: number;
@@ -82,7 +84,6 @@ export default function AdminAnalyticsPage() {
       supabase.from('catch_submissions').select('species, catch_status, submitted_at').order('submitted_at', { ascending: false }).limit(8),
       supabase.from('quiz_scores').select('quiz_category, score'),
     ]).then(([members, cards, catches, pending, trades, quizCount, userCards, topMembers, recentCatches, quizScores]) => {
-      // Rarity breakdown
       const rarityMap: Record<string, number> = {};
       (userCards.data || []).forEach((uc: Record<string, unknown>) => {
         const card = uc.cards as { rarity: string } | null;
@@ -92,7 +93,6 @@ export default function AdminAnalyticsPage() {
         rarity, count, color: rarityColors[rarity] || '#6B7280',
       }));
 
-      // Quiz score averages
       const quizMap: Record<string, { total: number; count: number }> = {};
       (quizScores.data || []).forEach((qs: { quiz_category: string; score: number }) => {
         if (!quizMap[qs.quiz_category]) quizMap[qs.quiz_category] = { total: 0, count: 0 };
@@ -148,12 +148,12 @@ export default function AdminAnalyticsPage() {
           <>
             {/* KPI grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <StatCard icon="UsersIcon"                  label="Members"          value={data.totalMembers}    sub="Registered anglers"     color="#2D6A4F" />
-              <StatCard icon="BookOpenIcon"               label="Cards in Circ."   value={data.totalCards}      sub="Master catalogue"        color="#ff751f" />
-              <StatCard icon="ClipboardDocumentListIcon"  label="Catch Logs"       value={data.totalCatches}    sub={`${data.pendingCatches} pending review`} color="#3B82F6" />
-              <StatCard icon="ArrowsRightLeftIcon"        label="Total Trades"     value={data.totalTrades}     sub="All time"               color="#8B5CF6" />
-              <StatCard icon="AcademicCapIcon"            label="Quiz Attempts"    value={data.quizCompletions} sub="All categories"         color="#F59E0B" />
-              <StatCard icon="SparklesIcon"               label="Cards Collected"  value={totalCollected}       sub="Across all members"     color="#ec4899" />
+              <StatCard icon="UsersIcon"                 label="Members"         value={data.totalMembers}    sub="Registered anglers"                      color="#2D6A4F" />
+              <StatCard icon="BookOpenIcon"              label="Cards in Circ."  value={data.totalCards}      sub="Master catalogue"                        color="#ff751f" />
+              <StatCard icon="ClipboardDocumentListIcon" label="Catch Logs"      value={data.totalCatches}    sub={`${data.pendingCatches} pending review`} color="#3B82F6" />
+              <StatCard icon="ArrowsRightLeftIcon"       label="Total Trades"    value={data.totalTrades}     sub="All time"                                color="#8B5CF6" />
+              <StatCard icon="AcademicCapIcon"           label="Quiz Attempts"   value={data.quizCompletions} sub="All categories"                          color="#F59E0B" />
+              <StatCard icon="SparklesIcon"              label="Cards Collected" value={totalCollected}       sub="Across all members"                      color="#ec4899" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -171,15 +171,7 @@ export default function AdminAnalyticsPage() {
                 <div className="space-y-3">
                   {['Legendary', 'Specimen', 'Elusive', 'Widespread'].map(r => {
                     const entry = data.cardsByRarity.find(c => c.rarity === r);
-                    return (
-                      <RarityBar
-                        key={r}
-                        rarity={r}
-                        count={entry?.count || 0}
-                        total={totalCollected}
-                        color={rarityColors[r]}
-                      />
-                    );
+                    return <RarityBar key={r} rarity={r} count={entry?.count || 0} total={totalCollected} color={rarityColors[r]} />;
                   })}
                 </div>
               </div>
@@ -231,7 +223,11 @@ export default function AdminAnalyticsPage() {
                 </div>
                 <div className="space-y-2">
                   {data.recentCatches.map((c, i) => {
-                    const statusColors: Record<string, string> = { approved: 'bg-green-100 text-green-700', pending: 'bg-amber-100 text-amber-700', rejected: 'bg-red-100 text-red-700' };
+                    const statusColors: Record<string, string> = {
+                      approved: 'bg-green-100 text-green-700',
+                      pending:  'bg-amber-100 text-amber-700',
+                      rejected: 'bg-red-100 text-red-700',
+                    };
                     return (
                       <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl bg-adventure-bg">
                         <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #2D6A4F, #3D9068)' }}>
