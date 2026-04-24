@@ -248,45 +248,44 @@ export default function AdminPage() {
     showToast('Card deleted.');
   };
 
- // ── Reward handlers ──────────────────────────────────────────
  const saveReward = async () => {
   if (!rewardForm.title?.trim()) return;
 
-  // We explicitly define the payload to ONLY include what is in your DB
+  // 1. Clean the payload to match Supabase types exactly
   const payload = {
     title: rewardForm.title,
-    description: rewardForm.description,
-    xp_cost: Number(rewardForm.xp_cost),
-    reward_type: rewardForm.reward_type,
-    icon: rewardForm.icon,
-    image_url: rewardForm.image_url,
-    active: rewardForm.active,
+    description: rewardForm.description || '',
+    xp_cost: Number(rewardForm.xp_cost) || 0,
+    reward_type: rewardForm.reward_type || 'general',
+    icon: rewardForm.icon || 'GiftIcon',
+    image_url: rewardForm.image_url || null,
+    active: typeof rewardForm.active === 'boolean' ? rewardForm.active : true, // Ensure it's a boolean
     stock: rewardForm.stock ? Number(rewardForm.stock) : null,
-    link: rewardForm.link
+    link: rewardForm.link || null
   };
 
   if (editingReward?.id) {
-    // UPDATE existing
     const { error } = await supabase
       .from('rewards_catalogue')
       .update(payload)
       .eq('id', editingReward.id);
 
     if (error) {
+      console.error("Reward Update Error:", error); // Check console for the specific column failing
       showToast('Update Error: ' + error.message);
       return;
     }
     setRewards(prev => prev.map(r => r.id === editingReward.id ? { ...r, ...payload } as Reward : r));
     showToast('Reward updated! ✓');
   } else {
-    // INSERT new
     const { data, error } = await supabase
       .from('rewards_catalogue')
-      .insert([payload])
+      .insert([payload]) // Note: some Supabase versions prefer just the object, but [payload] is standard for bulk-safe inserts
       .select()
       .single();
 
     if (error) {
+      console.error("Reward Insert Error:", error);
       showToast('Insert Error: ' + error.message);
       return;
     }
