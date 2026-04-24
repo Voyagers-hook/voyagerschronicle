@@ -250,32 +250,60 @@ export default function AdminPage() {
     showToast('Card deleted.');
   };
 
-  // ── Reward handlers ──────────────────────────────────────────
+ // ── Reward handlers ──────────────────────────────────────────
   const saveReward = async () => {
     if (!rewardForm.title?.trim()) return;
-    // Remove id from payload to prevent Supabase from trying to insert/update it manually
-    const { id: _, ...payload } = rewardForm;
+
+    // We create a clean object with ONLY the columns that exist in Supabase
+    const payload = {
+      title: rewardForm.title,
+      description: rewardForm.description,
+      xp_cost: Number(rewardForm.xp_cost), // Ensure it's a number
+      reward_type: rewardForm.reward_type,
+      icon: rewardForm.icon,
+      image_url: rewardForm.image_url,
+      active: rewardForm.active,
+      stock: rewardForm.stock ? Number(rewardForm.stock) : null,
+      link: rewardForm.link,
+      // If 'probability_weight' does NOT exist in your Supabase table, 
+      // do NOT include it here.
+    };
 
     if (editingReward?.id) {
-      const { error } = await supabase.from('rewards_catalogue').update(payload).eq('id', editingReward.id);
-      if (error) { showToast('Error: ' + error.message); return; }
-      // Update local state with the saved data
+      // Update
+      const { error } = await supabase
+        .from('rewards_catalogue')
+        .update(payload)
+        .eq('id', editingReward.id);
+
+      if (error) {
+        console.error("Supabase Update Error:", error); // Check your browser console for the real reason!
+        showToast('Error: ' + error.message);
+        return;
+      }
+
       setRewards(prev => prev.map(r => r.id === editingReward.id ? { ...r, ...payload } as Reward : r));
       showToast('Reward updated! ✓');
     } else {
-      const { data, error } = await supabase.from('rewards_catalogue').insert(payload).select().single();
-      if (error) { showToast('Error: ' + error.message); return; }
-      setRewards(prev => [...prev, data]);
+      // Insert
+      const { data, error } = await supabase
+        .from('rewards_catalogue')
+        .insert([payload]) // Wrapping in an array is safer for some Supabase versions
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Supabase Insert Error:", error);
+        showToast('Error: ' + error.message);
+        return;
+      }
+
+      if (data) setRewards(prev => [...prev, data]);
       showToast('Reward added! ✓');
     }
-    setShowRewardForm(false); setEditingReward(null);
-  };
 
-  const deleteReward = async (id: string) => {
-    const { error } = await supabase.from('rewards_catalogue').delete().eq('id', id);
-    if (error) { showToast('Error: ' + error.message); return; }
-    setRewards(prev => prev.filter(r => r.id !== id));
-    showToast('Reward deleted.');
+    setShowRewardForm(false);
+    setEditingReward(null);
   };
 
   // ── Quiz handlers ──────────────────────────────────────────────
