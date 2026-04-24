@@ -895,7 +895,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ── FISHING TIPS ── */}
+       {/* ── FISHING TIPS ── */}
         {tab === 'fishing-tips' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -943,8 +943,7 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
         {/* Toast */}
         {toast && (
