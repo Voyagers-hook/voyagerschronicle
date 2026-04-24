@@ -143,7 +143,6 @@ export default function CardSlot({ card, onClick }: CardSlotProps) {
     </div>
   </div>
 )}
-<p className="relative z-10 text-white font-display text-sm text-center mt-1 leading-tight drop-shadow-lg absolute bottom-2 left-0 right-0 px-2">{card.name}</p>
 
             {/* Rarity crown for Legendary */}
             {card.rarity === 'Legendary' && (
