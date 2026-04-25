@@ -44,13 +44,13 @@ export default function LoginForm() {
     <>
       {/* Fun Google Font — Nunito */}
      <style>{`
-  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Irish+Grover&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Henny+Penny&display=swap');
 `}</style>
 
       <div
         className="w-full rounded-3xl overflow-hidden"
         style={{
-          background: 'rgba(255, 255, 255, 0.13)',
+          background: 'rgba(255, 255, 255, 0.20)',
           backdropFilter: 'blur(28px)',
           WebkitBackdropFilter: 'blur(28px)',
           border: '1.5px solid rgba(255,255,255,0.28)',
@@ -90,12 +90,12 @@ export default function LoginForm() {
             <>
               {/* Heading */}
               <div className="mb-6" style={{ textAlign: 'center' }}>
-                <h2 style={{ fontFamily: "'Irish Grover', cursive", fontWeight: 900, fontSize: '2rem', lineHeight: 1.15, color: '#12313e', marginBottom: '0.35rem' }}>
+                <h2 style={{ fontFamily: "'Henny Penny', cursive", fontWeight: 900, fontSize: '2rem', lineHeight: 1.15, color: 'ffffff', marginBottom: '0.35rem' }}>
   Welcome back,{' '}
   <span 
     style={{ 
       color: '#ff751f',
-      fontFamily: "'Irish Grover', cursive",
+      fontFamily: "'Henny Penny', cursive",
       fontWeight: 400
     }}
   >
@@ -153,7 +153,7 @@ export default function LoginForm() {
                   disabled={isLoading}
                   className="w-full py-3.5 rounded-2xl font-sans font-bold text-sm text-white flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98] disabled:opacity-60"
                   style={{
-                    fontFamily: "'Irish Grover', cursive",
+                    fontFamily: "'Henny Penny', cursive",
                     fontWeight: 800,
                     fontSize: '0.95rem',
                     background: isLoading ? 'rgba(255,117,31,0.5)' : 'linear-gradient(135deg, #ff751f, #e85a00)',
