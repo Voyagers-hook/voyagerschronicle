@@ -127,9 +127,9 @@ export default function CatchTable({
                   {new Date(c.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </td>
 
-                {/* Weight — number from Supabase */}
+                {/* Weight — number in lbs from Supabase */}
                 <td className="px-4 py-3 text-sm font-sans font-semibold text-primary-800 tabular-nums whitespace-nowrap">
-                  {c.weight > 0 ? `${c.weight} kg` : '—'}
+                  {c.weight > 0 ? `${c.weight} lbs` : '—'}
                 </td>
 
                 {/* Length — number from Supabase */}
