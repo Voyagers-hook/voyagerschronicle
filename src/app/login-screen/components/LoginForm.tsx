@@ -4,12 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
-import AppLogo from '@/components/ui/AppLogo';
 import { createClient } from '@/lib/supabase/client';
-
-interface LoginFormData {
-  email: string;
-}
 
 export default function LoginForm() {
   const router = useRouter();
@@ -34,9 +29,7 @@ export default function LoginForm() {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       });
       if (error) throw error;
       setSent(true);
@@ -51,86 +44,79 @@ export default function LoginForm() {
 
   return (
     <div
-      className="flex-1 flex flex-col justify-center px-6 sm:px-10 lg:px-14 xl:px-20 py-12 relative overflow-hidden"
-      style={{ background: 'linear-gradient(160deg, #f0fdf4 0%, #fef9f0 50%, #fff7ed 100%)' }}
+      className="w-full rounded-3xl overflow-hidden"
+      style={{
+        background: 'rgba(10, 25, 18, 0.82)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1.5px solid rgba(255,255,255,0.10)',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,117,31,0.08)',
+      }}
     >
-      {/* Background dots */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {[
-          { size: 80, x: '5%', y: '8%', color: 'rgba(255,117,31,0.08)' },
-          { size: 60, x: '88%', y: '5%', color: 'rgba(45,106,79,0.08)' },
-          { size: 100, x: '92%', y: '85%', color: 'rgba(255,117,31,0.06)' },
-          { size: 50, x: '2%', y: '88%', color: 'rgba(59,130,246,0.08)' },
-          { size: 40, x: '50%', y: '3%', color: 'rgba(245,158,11,0.1)' },
-        ].map((dot, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full"
-            style={{ width: dot.size, height: dot.size, left: dot.x, top: dot.y, background: dot.color }}
-          />
-        ))}
-      </div>
+      {/* Top accent bar */}
+      <div
+        className="h-1 w-full"
+        style={{ background: 'linear-gradient(90deg, #2D6A4F, #ff751f, #E9A23B)' }}
+      />
 
-      {/* Mobile logo */}
-      <div className="lg:hidden flex items-center justify-center mb-8 relative z-10">
-        <AppLogo size={80} />
-      </div>
-
-      <div className="w-full max-w-md mx-auto relative z-10">
-        {/* Heading */}
-        <div className="mb-8 text-center lg:text-left">
-          <div
-            className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 mb-4 font-sans font-bold text-sm"
-            style={{ background: 'linear-gradient(135deg, #ff751f, #E9A23B)', color: 'white', boxShadow: '0 4px 16px rgba(255,117,31,0.3)', animation: 'pulseBadge 2.5s ease-in-out infinite' }}
-          >
-            <span>Ready to Fish?</span>
-          </div>
-          <h1 className="font-display text-4xl xl:text-5xl text-green-900 mb-3 leading-tight">
-            Welcome Back,
-            <br />
-            <span style={{ color: '#ff751f' }}>Captain!</span>
-          </h1>
-          <p className="text-green-700 font-sans text-sm leading-relaxed">
-            Enter your email to sign in and continue your fishing adventure!
-          </p>
-        </div>
-
+      <div className="px-7 pt-7 pb-8">
         {sent ? (
-          /* Success state */
-          <div
-            className="rounded-3xl p-8 shadow-2xl border-2 text-center"
-            style={{ background: 'white', borderColor: 'rgba(45,106,79,0.2)', boxShadow: '0 20px 60px rgba(45,106,79,0.12)' }}
-          >
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #2D6A4F, #3D9068)' }}>
-              <Icon name="EnvelopeIcon" size={32} className="text-white" />
+          /* ── Success state ── */
+          <div className="text-center py-4">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
+              style={{ background: 'linear-gradient(135deg, #2D6A4F, #3D9068)', boxShadow: '0 8px 24px rgba(45,106,79,0.4)' }}
+            >
+              <Icon name="EnvelopeIcon" size={30} className="text-white" />
             </div>
-            <h2 className="font-display text-2xl text-green-900 mb-2">Check Your Email!</h2>
-            <p className="text-green-700 font-sans text-sm leading-relaxed mb-4">
-              We sent a magic link to <strong>{email}</strong>. Click the link in your email to sign in — no password needed!
+            <h2 className="font-display text-2xl text-white mb-2">Check Your Inbox!</h2>
+            <p className="text-white/60 font-sans text-sm leading-relaxed mb-6">
+              We sent a magic link to{' '}
+              <span className="font-semibold text-white/90">{email}</span>.
+              <br />Click it to sign in — no password needed.
             </p>
             <button
               onClick={() => setSent(false)}
-              className="text-sm font-sans font-semibold underline"
+              className="text-xs font-sans font-semibold transition-colors"
               style={{ color: '#ff751f' }}
             >
-              Use a different email
+              ← Use a different email
             </button>
           </div>
         ) : (
-          /* Form */
-          <div
-            className="rounded-3xl p-6 shadow-2xl border-2"
-            style={{ background: 'white', borderColor: 'rgba(255,117,31,0.2)', boxShadow: '0 20px 60px rgba(45,106,79,0.12), 0 4px 16px rgba(255,117,31,0.08)' }}
-          >
-            <form onSubmit={onSubmit} noValidate className="space-y-5">
-              {/* Email */}
+          /* ── Form ── */
+          <>
+            {/* Heading */}
+            <div className="mb-7">
+              <div
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans font-bold mb-4 tracking-wide uppercase"
+                style={{
+                  background: 'rgba(255,117,31,0.15)',
+                  border: '1px solid rgba(255,117,31,0.35)',
+                  color: '#ff9a5c',
+                }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse inline-block" />
+                Members only
+              </div>
+              <h1 className="font-display text-3xl text-white leading-tight mb-2">
+                Welcome back,<br />
+                <span style={{ color: '#ff751f' }}>Captain!</span>
+              </h1>
+              <p className="text-white/50 font-sans text-sm">
+                Enter your email to get a magic sign-in link.
+              </p>
+            </div>
+
+            <form onSubmit={onSubmit} noValidate className="space-y-4">
+              {/* Email field */}
               <div>
-                <label htmlFor="email" className="block text-sm font-sans font-bold text-green-800 mb-2">
-                  Your Email Address
+                <label htmlFor="email" className="block text-xs font-sans font-semibold text-white/50 uppercase tracking-widest mb-2">
+                  Email address
                 </label>
                 <div className="relative">
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-green-500">
-                    <Icon name="EnvelopeIcon" size={18} />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <Icon name="EnvelopeIcon" size={16} className="text-white/30" />
                   </div>
                   <input
                     id="email"
@@ -138,68 +124,71 @@ export default function LoginForm() {
                     autoComplete="email"
                     placeholder="your@email.com"
                     value={email}
-                    onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(''); }}
-                    className={`
-                      w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 font-sans text-sm
-                      bg-green-50/50 text-green-900 placeholder-green-300
-                      transition-all duration-200
-                      focus:outline-none focus:ring-0 focus:bg-white
-                      ${emailError ? 'border-red-400 bg-red-50' : 'border-green-200 hover:border-green-300 focus:border-orange-400'}
-                    `}
+                    onChange={e => { setEmail(e.target.value); if (emailError) setEmailError(''); }}
+                    className="w-full pl-11 pr-4 py-3.5 rounded-2xl font-sans text-sm text-white placeholder-white/20 transition-all duration-200 focus:outline-none"
+                    style={{
+                      background: 'rgba(255,255,255,0.06)',
+                      border: emailError
+                        ? '1.5px solid rgba(239,68,68,0.7)'
+                        : '1.5px solid rgba(255,255,255,0.10)',
+                      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)',
+                    }}
+                    onFocus={e => {
+                      if (!emailError) e.currentTarget.style.border = '1.5px solid rgba(255,117,31,0.6)';
+                    }}
+                    onBlur={e => {
+                      if (!emailError) e.currentTarget.style.border = '1.5px solid rgba(255,255,255,0.10)';
+                    }}
                   />
                 </div>
                 {emailError && (
-                  <p className="mt-1.5 text-xs font-sans text-red-600 flex items-center gap-1">
-                    <Icon name="ExclamationCircleIcon" size={14} />
+                  <p className="mt-2 text-xs font-sans text-red-400 flex items-center gap-1.5">
+                    <Icon name="ExclamationCircleIcon" size={13} />
                     {emailError}
                   </p>
                 )}
               </div>
 
-              {/* Submit */}
+              {/* Submit button */}
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-4 rounded-2xl font-sans font-bold text-base text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 relative overflow-hidden"
+                className="w-full py-3.5 rounded-2xl font-sans font-bold text-sm text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 disabled:opacity-70"
                 style={{
-                  background: isLoading ? '#ff9a5c' : 'linear-gradient(135deg, #ff751f, #e85a00)',
-                  boxShadow: isLoading ? 'none' : '0 6px 24px rgba(255,117,31,0.45)',
+                  background: isLoading
+                    ? 'rgba(255,117,31,0.5)'
+                    : 'linear-gradient(135deg, #ff751f 0%, #e85a00 100%)',
+                  boxShadow: isLoading ? 'none' : '0 8px 24px rgba(255,117,31,0.4)',
                 }}
               >
-                {!isLoading && (
-                  <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-200"
-                    style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15), transparent)' }}
-                  />
-                )}
                 {isLoading ? (
                   <>
-                    <Icon name="ArrowPathIcon" size={20} className="animate-spin" />
-                    <span>Setting Sail...</span>
+                    <Icon name="ArrowPathIcon" size={16} className="animate-spin" />
+                    <span>Setting sail…</span>
                   </>
                 ) : (
                   <>
-                    <span>Start My Adventure!</span>
-                    <Icon name="ArrowRightIcon" size={18} />
+                    <span>Send Magic Link</span>
+                    <Icon name="ArrowRightIcon" size={16} />
                   </>
                 )}
               </button>
             </form>
-          </div>
-        )}
 
-        {/* Info note */}
-        <div
-          className="mt-5 rounded-2xl p-4 border-2"
-          style={{ background: 'rgba(45,106,79,0.06)', borderColor: 'rgba(45,106,79,0.15)' }}
-        >
-          <div className="flex items-start gap-2">
-            <Icon name="InformationCircleIcon" size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
-            <p className="text-xs font-sans text-green-700 leading-relaxed">
-              Your email is set up when you join at{' '}
-              <span className="font-bold text-green-800">Voyagers Hook</span>. Ask the shop if you need help!
-            </p>
-          </div>
-        </div>
+            {/* Info note */}
+            <div
+              className="mt-5 flex items-start gap-2.5 rounded-2xl px-4 py-3"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <Icon name="InformationCircleIcon" size={15} className="text-white/30 flex-shrink-0 mt-0.5" />
+              <p className="text-xs font-sans text-white/35 leading-relaxed">
+                Your account is set up when you join at{' '}
+                <span className="text-white/60 font-semibold">Voyagers Hook</span>.
+                Ask the shop if you need help!
+              </p>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
