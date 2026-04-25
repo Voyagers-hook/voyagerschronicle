@@ -16,7 +16,7 @@ function getFriendlyErrorMessage(err: unknown) {
     }
 
     if (message.includes('invalid email')) {
-      return 'Please enter a valid email address.';
+      return 'Please enter your registered email address.';
     }
 
     return 'We couldn’t send your sign-in link. Please try again.';
@@ -34,7 +34,7 @@ export default function LoginForm() {
 
   const validateEmail = (value: string) => {
     if (!value) return 'Email address is required';
-    if (!EMAIL_REGEX.test(value)) return 'Enter a valid email address';
+    if (!EMAIL_REGEX.test(value)) return 'Enter your registered email address';
     return '';
   };
 
