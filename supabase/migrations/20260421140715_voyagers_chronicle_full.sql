@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS public.rewards_catalogue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   description TEXT,
-  xp_cost INTEGER NOT NULL DEFAULT 0,
+  points_cost INTEGER NOT NULL DEFAULT 0,
   reward_type TEXT NOT NULL DEFAULT 'general',
   icon TEXT DEFAULT '🎁',
   image_url TEXT,
@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS public.rewards_redemptions (
   reward_type TEXT NOT NULL,
   reward_label TEXT NOT NULL,
   points_cost INTEGER NOT NULL,
-  xp_cost INTEGER,
+  points_cost INTEGER,
   catalogue_id UUID REFERENCES public.rewards_catalogue(id) ON DELETE SET NULL,
   redeemed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -387,7 +387,7 @@ VALUES
 ON CONFLICT (card_number) DO NOTHING;
 
 -- Seed initial rewards
-INSERT INTO public.rewards_catalogue (title, description, xp_cost, reward_type, icon)
+INSERT INTO public.rewards_catalogue (title, description, points_cost, reward_type, icon)
 VALUES
   ('Card Pack', 'Receive a random pack of 3 new fishing cards!', 500, 'card-pack', 'GiftIcon'),
   ('Rare Pack', 'A special pack guaranteed to contain at least one Elusive or rarer card!', 1000, 'rare-pack', 'SparklesIcon'),
