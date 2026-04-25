@@ -64,48 +64,13 @@ export default function CatchLogClient() {
     fetchCatches();
   }, [user]);
 
-  // ── Add a new catch (inserts into Supabase as pending) ───────────────────
-  const handleAddCatch = async (entry: CatchEntry) => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('catch_submissions')
-      .insert({
-        user_id: user.id,
-        species: entry.species,
-        weight_kg: entry.weight,
-        length_cm: entry.length,
-        location: entry.location,
-        notes: entry.notes,
-        water_type: entry.waterType,
-        image_url: entry.imageUrl ?? null,
-        catch_status: 'pending',
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error saving catch:', error);
-      return;
-    }
-
-    // Prepend the new row to local state immediately
-    const newEntry: CatchEntry = {
-      id: data.id,
-      species: data.species,
-      weight: data.weight_kg ?? 0,
-      length: data.length_cm ?? 0,
-      location: data.location ?? '',
-      notes: data.notes ?? '',
-      waterType: data.water_type ?? 'River',
-      date: data.submitted_at,
-      status: data.catch_status,
-      imageUrl: data.image_url ?? '',
-    };
-
-    setCatches((prev) => [newEntry, ...prev]);
+  // ── Add a new catch — LogCatchPanel already saved to Supabase,
+  //    so just prepend to local state ────────────────────────────
+  const handleAddCatch = (entry: CatchEntry) => {
+    setCatches((prev) => [entry, ...prev]);
     setPanelOpen(false);
   };
+
 
   // ── Delete a catch ────────────────────────────────────────────────────────
   const handleDeleteCatch = async (id: string) => {
@@ -262,7 +227,7 @@ export default function CatchLogClient() {
             onChange={(e) => { setFilterWater(e.target.value); setCurrentPage(1); }}
             className="px-3 py-2.5 rounded-xl border border-adventure-border bg-adventure-bg text-sm font-sans text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all cursor-pointer"
           >
-            {['all', 'River', 'Lake', 'Sea', 'Dam', 'Creek'].map((w) => (
+            {['all', 'River', 'Lake', 'Sea', 'Other'].map((w) => (
               <option key={`water-opt-${w}`} value={w}>
                 {w === 'all' ? 'All Water Types' : w}
               </option>
