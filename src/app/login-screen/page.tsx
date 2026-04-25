@@ -33,7 +33,7 @@ export default function LoginPage() {
         </div>
         <LoginForm />
         <p className="mt-5 text-center text-xs font-sans text-white/80" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
-          Your email is registered at Voyagers Hook. Ask the shop if you need help!
+          Please use the email you signed up for your Little Voyagers Account with. Contact us if you need help!
         </p>
       </div>
     </div>
