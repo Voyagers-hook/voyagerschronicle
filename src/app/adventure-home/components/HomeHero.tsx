@@ -37,13 +37,11 @@ const StarSvg = ({ size, color }: { size: number; color: string }) => (
   </svg>
 );
 
-// XP thresholds per level — adjust these to match your game design
-const XP_PER_LEVEL = 1000;
-
 export default function HomeHero() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [collectedCount, setCollectedCount] = useState(0);
+  const [nextLevelXp, setNextLevelXp] = useState<number>(50);
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -52,6 +50,7 @@ export default function HomeHero() {
     if (!user) { setLoading(false); return; }
 
     const supabase = createClient();
+
     Promise.all([
       supabase
         .from('user_profiles')
@@ -62,8 +61,18 @@ export default function HomeHero() {
         .from('user_cards')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id),
-    ]).then(([profResult, countResult]) => {
-      if (profResult.data) setProfile(profResult.data);
+    ]).then(async ([profResult, countResult]) => {
+      if (profResult.data) {
+        setProfile(profResult.data);
+        // Now fetch the next level threshold based on actual level
+        const nextLevel = (profResult.data.level ?? 1) + 1;
+        const { data: threshold } = await supabase
+          .from('level_thresholds')
+          .select('xp_required')
+          .eq('level', nextLevel)
+          .single();
+        if (threshold) setNextLevelXp(threshold.xp_required);
+      }
       setCollectedCount(countResult.count || 0);
       setLoading(false);
     });
@@ -73,21 +82,16 @@ export default function HomeHero() {
   const xp          = profile?.xp ?? 0;
   const level       = profile?.level ?? 1;
   const streak      = profile?.streak_weeks ?? 0;
-  const tier        = profile?.membership_tier ?? 'Explorer';
+  const tier        = profile?.membership_tier ?? 'Novice Angler';
 
-  // XP progress within the current level
-  const xpIntoLevel  = xp % XP_PER_LEVEL;
-  const xpNeeded     = XP_PER_LEVEL;
-  const xpProgress   = Math.min(Math.round((xpIntoLevel / xpNeeded) * 100), 100);
+  const xpProgress = Math.min(Math.round((xp / nextLevelXp) * 100), 100);
 
   return (
     <div className="relative overflow-hidden rounded-3xl p-6 lg:p-8" style={{ background: 'linear-gradient(135deg, #091408 0%, #1A3D28 50%, #2D6A4F 100%)' }}>
       {/* Texture */}
       <div
         className="absolute inset-0 opacity-5"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E")`,
-        }}
+        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E")` }}
       />
       {/* Decorative orbs */}
       <div className="absolute top-0 right-0 w-72 h-72 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #ff751f, transparent)', transform: 'translate(30%, -30%)' }} />
@@ -95,21 +99,11 @@ export default function HomeHero() {
 
       {/* Floating decorative icons */}
       {mounted && FLOATING_ITEMS.map((item, i) => (
-        <div
-          key={i}
-          className="absolute pointer-events-none select-none hidden lg:block"
-          style={{
-            left: item.x,
-            top: item.y,
-            animation: `floatBob ${item.duration} ${item.delay} ease-in-out infinite`,
-            filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.4))',
-            zIndex: 5,
-          }}
-        >
+        <div key={i} className="absolute pointer-events-none select-none hidden lg:block"
+          style={{ left: item.x, top: item.y, animation: `floatBob ${item.duration} ${item.delay} ease-in-out infinite`, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.4))', zIndex: 5 }}>
           {item.type === 'fish'
             ? <FishSvg size={item.size} color={item.color} />
-            : <StarSvg size={item.size} color={item.color} />
-          }
+            : <StarSvg size={item.size} color={item.color} />}
         </div>
       ))}
 
@@ -120,8 +114,7 @@ export default function HomeHero() {
             <Image
               src="/assets/images/little_voyagers_logo-1776778067350.png"
               alt="Little Voyagers Project Somerset"
-              width={56}
-              height={56}
+              width={56} height={56}
               className="object-contain drop-shadow-lg"
             />
           </div>
@@ -143,18 +136,18 @@ export default function HomeHero() {
 
             <div className="flex flex-wrap items-center gap-2 mt-4">
               <div
-  className="rounded-full px-3 py-1 flex items-center gap-1.5 border border-white/20"
-  style={{ backgroundColor: 'rgba(255,117,31,0.2)', animation: 'pulseBadge 3s ease-in-out infinite' }}
->
-  <Icon name="StarIcon" size={14} className="text-amber-400" />
-  <span className="text-amber-200 text-xs font-sans font-semibold">Level {level} · {tier}</span>
-</div>
-{streak > 0 && (
-  <div className="bg-white/10 border border-white/20 rounded-full px-3 py-1 flex items-center gap-1.5">
-    <Icon name="FireIcon" size={14} className="text-orange-400" />
-    <span className="text-white text-xs font-sans font-semibold">{streak} Week Streak</span>
-  </div>
-)}
+                className="rounded-full px-3 py-1 flex items-center gap-1.5 border border-white/20"
+                style={{ backgroundColor: 'rgba(255,117,31,0.2)', animation: 'pulseBadge 3s ease-in-out infinite' }}
+              >
+                <Icon name="StarIcon" size={14} className="text-amber-400" />
+                <span className="text-amber-200 text-xs font-sans font-semibold">Level {level} · {tier}</span>
+              </div>
+              {streak > 0 && (
+                <div className="bg-white/10 border border-white/20 rounded-full px-3 py-1 flex items-center gap-1.5">
+                  <Icon name="FireIcon" size={14} className="text-orange-400" />
+                  <span className="text-white text-xs font-sans font-semibold">{streak} Week Streak</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -172,12 +165,12 @@ export default function HomeHero() {
           {/* XP progress bar */}
           <div className="w-full sm:w-52">
             <div className="flex justify-between mb-1">
-              <span className="text-primary-200 text-xs font-sans">XP to Level {level + 1}</span>
+              <span className="text-primary-200 text-xs font-sans">XP Progress · Level {level}</span>
               {loading ? (
                 <span className="text-xs font-sans text-white/40">—</span>
               ) : (
                 <span className="text-xs font-sans font-semibold tabular-nums" style={{ color: '#ff751f' }}>
-                  {xpIntoLevel} / {xpNeeded}
+                  {xp} / {nextLevelXp} XP
                 </span>
               )}
             </div>
