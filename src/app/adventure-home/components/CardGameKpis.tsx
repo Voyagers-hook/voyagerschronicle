@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 interface UserStats {
   power: number;
   stealth: number;
-  stamina: number;
+  energy: number;
   beauty: number;
   total: number;
   collected: number;
@@ -17,15 +17,18 @@ interface UserStats {
 }
 
 const statConfig = [
-  { key: 'power',   label: 'Power',   icon: 'BoltIcon',      color: '#ef4444', bg: 'bg-red-50',   border: 'border-red-200',   bar: 'stat-bar-power'   },
-  { key: 'stealth', label: 'Stealth', icon: 'EyeSlashIcon',  color: '#2D6A4F', bg: 'bg-green-50', border: 'border-green-200', bar: 'stat-bar-stealth' },
-  { key: 'stamina', label: 'Stamina', icon: 'HeartIcon',     color: '#3B82F6', bg: 'bg-blue-50',  border: 'border-blue-200',  bar: 'stat-bar-stamina' },
-  { key: 'beauty',  label: 'Beauty',  icon: 'SparklesIcon',  color: '#ec4899', bg: 'bg-pink-50',  border: 'border-pink-200',  bar: 'stat-bar-beauty'  },
+  { key: 'power',   label: 'Power',   icon: 'BoltIcon',      color: '#ef4444', bg: 'bg-red-50',    border: 'border-red-200',    bar: 'stat-bar-power'   },
+  { key: 'stealth', label: 'Stealth', icon: 'EyeSlashIcon',  color: '#2D6A4F', bg: 'bg-green-50',  border: 'border-green-200',  bar: 'stat-bar-stealth' },
+  { key: 'energy',  label: 'Energy',  icon: 'HeartIcon',     color: '#3B82F6', bg: 'bg-blue-50',   border: 'border-blue-200',   bar: 'stat-bar-energy'  },
+  { key: 'beauty',  label: 'Beauty',  icon: 'SparklesIcon',  color: '#ec4899', bg: 'bg-pink-50',   border: 'border-pink-200',   bar: 'stat-bar-beauty'  },
 ];
 
 export default function CardGameKpis() {
   const { user } = useAuth();
-  const [stats, setStats] = useState<UserStats>({ power: 0, stealth: 0, stamina: 0, beauty: 0, total: 0, collected: 0, totalCards: 24 });
+  const [stats, setStats] = useState<UserStats>({
+    power: 0, stealth: 0, energy: 0, beauty: 0,
+    total: 0, collected: 0, totalCards: 24,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,30 +38,41 @@ export default function CardGameKpis() {
     Promise.all([
       supabase
         .from('user_cards')
-        .select('cards(power, stealth, stamina, beauty)')
+        .select('cards(power, stealth, energy, beauty)')
         .eq('user_id', user.id),
       supabase.from('cards').select('id', { count: 'exact', head: true }),
     ]).then(([userCardsResult, countResult]) => {
-      const { data: userCards, error: userCardsError } = userCardsResult;
-      const { count, error: countError } = countResult;
-      const cards = (userCards || []).map((uc: Record<string, unknown>) => uc.cards as { power: number; stealth: number; stamina: number; beauty: number } | null).filter(Boolean) as { power: number; stealth: number; stamina: number; beauty: number }[];
+      const { data: userCards } = userCardsResult;
+      const { count } = countResult;
+
+      const cards = (userCards || [])
+        .map((uc: Record<string, unknown>) => uc.cards as {
+          power: number; stealth: number; energy: number; beauty: number;
+        } | null)
+        .filter(Boolean) as { power: number; stealth: number; energy: number; beauty: number }[];
+
       const power   = cards.reduce((s, c) => s + (c?.power   || 0), 0);
       const stealth = cards.reduce((s, c) => s + (c?.stealth || 0), 0);
-      const stamina = cards.reduce((s, c) => s + (c?.stamina || 0), 0);
+      const energy  = cards.reduce((s, c) => s + (c?.energy  || 0), 0);
       const beauty  = cards.reduce((s, c) => s + (c?.beauty  || 0), 0);
-      setStats({ power, stealth, stamina, beauty, total: power + stealth + stamina + beauty, collected: cards.length, totalCards: count || 24 });
+
+      setStats({
+        power, stealth, energy, beauty,
+        total: power + stealth + energy + beauty,
+        collected: cards.length,
+        totalCards: count || 24,
+      });
       setLoading(false);
     });
   }, [user]);
 
   const progress = stats.totalCards > 0 ? Math.round((stats.collected / stats.totalCards) * 100) : 0;
-  const maxStat = Math.max(stats.power, stats.stealth, stats.stamina, stats.beauty, 1);
+  const maxStat = Math.max(stats.power, stats.stealth, stats.energy, stats.beauty, 1);
 
   return (
     <div className="space-y-4">
       {/* Total points hero banner */}
       <div className="relative overflow-hidden rounded-3xl p-5 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, #ff751f 0%, #e85a00 100%)' }}>
-        {/* Decorative bubbles */}
         <div className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-15" style={{ background: 'radial-gradient(circle, white, transparent)', transform: 'translate(30%, -30%)' }} />
         <div className="absolute bottom-0 left-20 w-24 h-24 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, white, transparent)', transform: 'translateY(40%)' }} />
         <div className="relative z-10">
