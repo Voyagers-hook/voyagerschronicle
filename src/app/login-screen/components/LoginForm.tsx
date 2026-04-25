@@ -87,10 +87,10 @@ export default function LoginForm() {
           ) : (
             <>
               {/* Heading */}
-              <div className="mb-6">
+              <div className="mb-6">style={{ textAlign: 'center' }}>
                 <h2 style={{ fontFamily: "'Nunito', sans-serif", fontWeight: 900, fontSize: '2rem', lineHeight: 1.15, color: 'white', marginBottom: '0.35rem' }}>
                   Welcome back,{' '}
-                  <span style={{ color: '#ff751f' }}>Captain!</span> 🎣
+                  <span style={{ color: '#ff751f' }}>Voyager!</span> 
                 </h2>
                 <p className="font-sans text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
                   Enter your email to get your magic sign-in link.
