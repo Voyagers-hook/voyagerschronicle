@@ -90,7 +90,7 @@ export default function LoginForm() {
             <>
               {/* Heading */}
               <div className="mb-6" style={{ textAlign: 'center' }}>
-                <h2 style={{ fontFamily: "'Nunito', sans-serif", fontWeight: 900, fontSize: '2rem', lineHeight: 1.15, color: 'white', marginBottom: '0.35rem' }}>
+                <h2 style={{ fontFamily: "'Irish Grover', cursive", fontWeight: 900, fontSize: '2rem', lineHeight: 1.15, color: 'white', marginBottom: '0.35rem' }}>
   Welcome back,{' '}
   <span 
     style={{ 
