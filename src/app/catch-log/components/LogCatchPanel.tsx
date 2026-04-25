@@ -12,7 +12,7 @@ interface LogCatchPanelProps {
   totalCatches: number;
 }
 
-const WATER_TYPES = ['River', 'Lake', 'Sea', 'Dam', 'Creek'];
+const WATER_TYPES = ['River', 'Lake', 'Sea', 'Other'];
 
 export default function LogCatchPanel({ onClose, onSave, totalCatches }: LogCatchPanelProps) {
   const { user } = useAuth();
