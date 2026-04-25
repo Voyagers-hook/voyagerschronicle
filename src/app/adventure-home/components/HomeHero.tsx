@@ -143,22 +143,18 @@ export default function HomeHero() {
 
             <div className="flex flex-wrap items-center gap-2 mt-4">
               <div
-                className="rounded-full px-3 py-1 flex items-center gap-1.5 border border-white/20"
-                style={{ backgroundColor: 'rgba(255,117,31,0.2)', animation: 'pulseBadge 3s ease-in-out infinite' }}
-              >
-                <Icon name="StarIcon" size={14} className="text-amber-400" />
-                <span className="text-amber-200 text-xs font-sans font-semibold">{tier}</span>
-              </div>
-              {streak > 0 && (
-                <div className="bg-white/10 border border-white/20 rounded-full px-3 py-1 flex items-center gap-1.5">
-                  <Icon name="FireIcon" size={14} className="text-orange-400" />
-                  <span className="text-white text-xs font-sans font-semibold">{streak} Week Streak</span>
-                </div>
-              )}
-              <div className="bg-white/10 border border-white/20 rounded-full px-3 py-1 flex items-center gap-1.5">
-                <Icon name="TrophyIcon" size={14} className="text-blue-300" />
-                <span className="text-white text-xs font-sans font-semibold">Level {level} Angler</span>
-              </div>
+  className="rounded-full px-3 py-1 flex items-center gap-1.5 border border-white/20"
+  style={{ backgroundColor: 'rgba(255,117,31,0.2)', animation: 'pulseBadge 3s ease-in-out infinite' }}
+>
+  <Icon name="StarIcon" size={14} className="text-amber-400" />
+  <span className="text-amber-200 text-xs font-sans font-semibold">Level {level} · {tier}</span>
+</div>
+{streak > 0 && (
+  <div className="bg-white/10 border border-white/20 rounded-full px-3 py-1 flex items-center gap-1.5">
+    <Icon name="FireIcon" size={14} className="text-orange-400" />
+    <span className="text-white text-xs font-sans font-semibold">{streak} Week Streak</span>
+  </div>
+)}
             </div>
           </div>
         </div>
