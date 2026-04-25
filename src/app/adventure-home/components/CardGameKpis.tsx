@@ -17,10 +17,10 @@ interface UserStats {
 }
 
 const statConfig = [
-  { key: 'power',   label: 'Power',   icon: 'BoltIcon',      color: '#ef4444', bg: 'bg-red-50',    border: 'border-red-200',    bar: 'stat-bar-power'   },
-  { key: 'stealth', label: 'Stealth', icon: 'EyeSlashIcon',  color: '#2D6A4F', bg: 'bg-green-50',  border: 'border-green-200',  bar: 'stat-bar-stealth' },
-  { key: 'energy',  label: 'Energy',  icon: 'HeartIcon',     color: '#3B82F6', bg: 'bg-blue-50',   border: 'border-blue-200',   bar: 'stat-bar-energy'  },
-  { key: 'beauty',  label: 'Beauty',  icon: 'SparklesIcon',  color: '#ec4899', bg: 'bg-pink-50',   border: 'border-pink-200',   bar: 'stat-bar-beauty'  },
+  { key: 'power',   label: 'Power',   icon: 'BoltIcon',     color: '#ef4444', bg: 'bg-red-50',   border: 'border-red-200'   },
+  { key: 'stealth', label: 'Stealth', icon: 'EyeSlashIcon', color: '#2D6A4F', bg: 'bg-green-50', border: 'border-green-200' },
+  { key: 'energy',  label: 'Energy',  icon: 'HeartIcon',    color: '#3B82F6', bg: 'bg-blue-50',  border: 'border-blue-200'  },
+  { key: 'beauty',  label: 'Beauty',  icon: 'SparklesIcon', color: '#ec4899', bg: 'bg-pink-50',  border: 'border-pink-200'  },
 ];
 
 export default function CardGameKpis() {
@@ -46,9 +46,9 @@ export default function CardGameKpis() {
       const { count } = countResult;
 
       const cards = (userCards || [])
-        .map((uc: Record<string, unknown>) => uc.cards as {
-          power: number; stealth: number; energy: number; beauty: number;
-        } | null)
+        .map((uc: Record<string, unknown>) =>
+          uc.cards as { power: number; stealth: number; energy: number; beauty: number } | null
+        )
         .filter(Boolean) as { power: number; stealth: number; energy: number; beauty: number }[];
 
       const power   = cards.reduce((s, c) => s + (c?.power   || 0), 0);
@@ -67,12 +67,16 @@ export default function CardGameKpis() {
   }, [user]);
 
   const progress = stats.totalCards > 0 ? Math.round((stats.collected / stats.totalCards) * 100) : 0;
-  const maxStat = Math.max(stats.power, stats.stealth, stats.energy, stats.beauty, 1);
+  const maxStat  = Math.max(stats.power, stats.stealth, stats.energy, stats.beauty, 1);
 
   return (
     <div className="space-y-4">
-      {/* Total points hero banner */}
-      <div className="relative overflow-hidden rounded-3xl p-5 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, #ff751f 0%, #e85a00 100%)' }}>
+
+      {/* Total card points banner */}
+      <div
+        className="relative overflow-hidden rounded-3xl p-5 flex items-center justify-between"
+        style={{ background: 'linear-gradient(135deg, #ff751f 0%, #e85a00 100%)' }}
+      >
         <div className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-15" style={{ background: 'radial-gradient(circle, white, transparent)', transform: 'translate(30%, -30%)' }} />
         <div className="absolute bottom-0 left-20 w-24 h-24 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, white, transparent)', transform: 'translateY(40%)' }} />
         <div className="relative z-10">
@@ -86,7 +90,7 @@ export default function CardGameKpis() {
         </div>
         <div className="relative z-10 flex flex-col items-end gap-2">
           <Link href="/rewards" className="bg-white/20 hover:bg-white/30 text-white text-xs font-sans font-semibold px-4 py-2 rounded-xl transition-colors border border-white/30">
-            Redeem Points
+            Redeem XP
           </Link>
           <Link href="/leaderboard" className="bg-white text-xs font-sans font-semibold px-4 py-2 rounded-xl transition-colors" style={{ color: '#ff751f' }}>
             Leaderboard
@@ -122,7 +126,7 @@ export default function CardGameKpis() {
         <p className="text-xs font-sans text-earth-400 mt-1">{progress}% complete</p>
       </div>
 
-      {/* Stat bubbles grid */}
+      {/* Stat cards grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {statConfig.map((s) => {
           const val = stats[s.key as keyof UserStats] as number;
@@ -144,8 +148,12 @@ export default function CardGameKpis() {
               ) : (
                 <>
                   <p className="font-display text-3xl tabular-nums font-bold mb-2" style={{ color: s.color }}>{val}</p>
-                  <div className="h-2 bg-white/60 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${s.bar}`} style={{ width: `${barWidth}%` }} />
+                  {/* Inline bar colour — no CSS class dependency */}
+                  <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${s.color}20` }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${barWidth}%`, backgroundColor: s.color }}
+                    />
                   </div>
                 </>
               )}
