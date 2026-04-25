@@ -90,7 +90,7 @@ export default function LoginForm() {
             <>
               {/* Heading */}
               <div className="mb-6" style={{ textAlign: 'center' }}>
-                <h2 style={{ fontFamily: "'Irish Grover', cursive", fontWeight: 900, fontSize: '2rem', lineHeight: 1.15, color: '#036a52', marginBottom: '0.35rem' }}>
+                <h2 style={{ fontFamily: "'Irish Grover', cursive", fontWeight: 900, fontSize: '2rem', lineHeight: 1.15, color: '#12313e', marginBottom: '0.35rem' }}>
   Welcome back,{' '}
   <span 
     style={{ 
@@ -153,7 +153,7 @@ export default function LoginForm() {
                   disabled={isLoading}
                   className="w-full py-3.5 rounded-2xl font-sans font-bold text-sm text-white flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98] disabled:opacity-60"
                   style={{
-                    fontFamily: "'Nunito', sans-serif",
+                    fontFamily: "'Irish Grover', cursive",
                     fontWeight: 800,
                     fontSize: '0.95rem',
                     background: isLoading ? 'rgba(255,117,31,0.5)' : 'linear-gradient(135deg, #ff751f, #e85a00)',
