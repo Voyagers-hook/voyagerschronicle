@@ -1,23 +1,10 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import React, { useState, useRef } from 'react';
 import Icon from '@/components/ui/AppIcon';
-import { CatchEntry } from './catchData';
-
-interface LogCatchFormData {
-  species: string;
-  customSpecies: string;
-  weight: string;
-  length: string;
-  location: string;
-  waterType: string;
-  weather: string;
-  bait: string;
-  date: string;
-  notes: string;
-}
+import { CatchEntry, UK_SPECIES } from './catchData';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LogCatchPanelProps {
   onClose: () => void;
@@ -25,368 +12,317 @@ interface LogCatchPanelProps {
   totalCatches: number;
 }
 
-const SPECIES_OPTIONS = [
-  'Rainbow Trout',
-  'Brown Trout',
-  'Murray Cod',
-  'Yellowbelly',
-  'Flathead',
-  'Silver Perch',
-  'Redfin Perch',
-  'Australian Bass',
-  'Yellowfin Bream',
-  'Snapper',
-  'Barramundi',
-  'Cod',
-  'Other (specify below)',
-];
-
-const SPECIES_EMOJI: Record<string, string> = {
-  'Rainbow Trout': '🐟',
-  'Brown Trout': '🐟',
-  'Murray Cod': '🐠',
-  'Yellowbelly': '🦈',
-  'Flathead': '🐡',
-  'Silver Perch': '🐟',
-  'Redfin Perch': '🐠',
-  'Australian Bass': '🦈',
-  'Yellowfin Bream': '🐡',
-  Snapper: '🐠',
-  Barramundi: '🐟',
-  Cod: '🐠',
-};
+const WATER_TYPES = ['River', 'Lake', 'Sea', 'Dam', 'Creek'];
 
 export default function LogCatchPanel({ onClose, onSave, totalCatches }: LogCatchPanelProps) {
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<LogCatchFormData>({
-    defaultValues: {
-      species: '',
-      customSpecies: '',
-      weight: '',
-      length: '',
-      location: '',
-      waterType: 'River',
-      weather: 'Sunny',
-      bait: '',
-      date: new Date().toISOString().split('T')[0],
-      notes: '',
-    },
+  const { user } = useAuth();
+  const supabase = createClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [form, setForm] = useState({
+    species: '',
+    speciesInput: '',       // for the typeahead input
+    weight: '',             // lbs
+    length: '',             // cm
+    location: '',
+    waterType: 'River',
+    notes: '',
   });
 
-  const selectedSpecies = watch('species');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Trap focus in panel
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = '';
-    };
-  }, [onClose]);
+  // Species typeahead filtering
+  const suggestions = form.speciesInput.length > 0
+    ? UK_SPECIES.filter(s => s.toLowerCase().includes(form.speciesInput.toLowerCase())).slice(0, 8)
+    : [];
 
-  // Backend integration point: POST to /api/catches with form data
-  const onSubmit = async (data: LogCatchFormData) => {
-    await new Promise((r) => setTimeout(r, 800));
-
-    const finalSpecies = data.species === 'Other (specify below)' && data.customSpecies
-      ? data.customSpecies
-      : data.species;
-
-    const newEntry: CatchEntry = {
-      id: `catch-${String(totalCatches + 1).padStart(3, '0')}`,
-      species: finalSpecies,
-      weight: data.weight ? `${data.weight} kg` : '— kg',
-      length: data.length ? `${data.length} cm` : '— cm',
-      location: data.location,
-      waterType: data.waterType,
-      weather: data.weather,
-      bait: data.bait,
-      date: new Date(data.date).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }),
-      notes: data.notes,
-      emoji: SPECIES_EMOJI[finalSpecies] || '🐟',
-    };
-
-    onSave(newEntry);
-    toast.success(`🎣 ${finalSpecies} logged! Great catch, Finn!`);
+  const handleSpeciesSelect = (species: string) => {
+    setForm(p => ({ ...p, species, speciesInput: species }));
+    setShowSuggestions(false);
   };
 
-  const inputClass = (hasError: boolean) => `
-    w-full px-3.5 py-2.5 rounded-xl border font-sans text-sm
-    bg-white text-primary-900 placeholder-earth-300
-    transition-all duration-150
-    focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400
-    ${hasError ? 'border-red-400 bg-red-50' : 'border-adventure-border hover:border-primary-300'}
-  `;
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
 
-  const labelClass = 'block text-sm font-sans font-semibold text-primary-800 mb-1.5';
-  const helperClass = 'text-xs font-sans text-earth-400 mb-1.5';
-  const errorClass = 'mt-1 text-xs font-sans text-red-600 flex items-center gap-1';
+  const handleSubmit = async () => {
+    if (!form.species.trim()) { setError('Please select or enter a species.'); return; }
+    if (!user) return;
+
+    setSaving(true);
+    setError('');
+
+    // Upload photo if one was selected
+    let photoUrl: string | null = null;
+    if (photoFile) {
+      const ext = photoFile.name.split('.').pop();
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('catch-photos')
+        .upload(path, photoFile);
+
+      if (uploadError) {
+        setError('Photo upload failed: ' + uploadError.message);
+        setSaving(false);
+        return;
+      }
+
+      const { data } = supabase.storage.from('catch-photos').getPublicUrl(path);
+      photoUrl = data.publicUrl;
+    }
+
+    // Insert into Supabase
+    const { data, error: insertError } = await supabase
+      .from('catch_submissions')
+      .insert({
+        user_id:     user.id,
+        species:     form.species.trim(),
+        weight_lbs:  form.weight ? Number(form.weight) : null,
+        length_cm:   form.length ? Number(form.length) : null,
+        location:    form.location.trim() || null,
+        water_type:  form.waterType,
+        notes:       form.notes.trim() || null,
+        photo_url:   photoUrl,
+        catch_status: 'pending',
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      setError(insertError.message);
+      setSaving(false);
+      return;
+    }
+
+    // Pass back to parent
+    onSave({
+      id:       data.id,
+      species:  data.species,
+      weight:   data.weight_lbs ?? 0,
+      length:   data.length_cm ?? 0,
+      location: data.location ?? '',
+      waterType: data.water_type ?? 'River',
+      date:     data.submitted_at,
+      notes:    data.notes ?? '',
+      status:   data.catch_status,
+      photoUrl: data.photo_url ?? undefined,
+    });
+
+    setSaving(false);
+  };
+
+  const inputCls = 'w-full border border-adventure-border rounded-xl px-4 py-2.5 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white placeholder-earth-300 transition-all';
+  const labelCls = 'block text-xs font-sans font-semibold text-earth-500 uppercase tracking-wide mb-1.5';
 
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-white shadow-panel slide-in-panel overflow-y-auto">
+      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-adventure-border px-6 py-4 flex items-center justify-between z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #ff751f, #e85a00)' }}>
-              <Icon name="PlusCircleIcon" size={20} className="text-white" />
-            </div>
-            <div>
-              <h2 className="font-display text-xl text-primary-800">Log a Catch</h2>
-              <p className="text-xs font-sans text-earth-400">Record your fishing adventure</p>
-            </div>
+          <div>
+            <h2 className="font-display text-xl text-primary-800">Log a Catch</h2>
+            <p className="text-xs font-sans text-earth-400">{totalCatches} catches logged so far</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl hover:bg-primary-50 text-primary-400 hover:text-primary-600 transition-colors"
-            aria-label="Close panel"
-          >
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-earth-100 text-earth-400 transition-colors">
             <Icon name="XMarkIcon" size={20} />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="px-6 py-5 space-y-5">
-          {/* Species */}
+        <div className="p-6 space-y-5">
+
+          {/* Photo upload */}
           <div>
-            <label htmlFor="species" className={labelClass}>
-              Fish Species <span className="text-red-500">*</span>
-            </label>
-            <p className={helperClass}>Select the type of fish you caught</p>
-            <select
-              id="species"
-              className={inputClass(!!errors.species)}
-              {...register('species', { required: 'Please select a species' })}
+            <label className={labelCls}>Photo of your catch</label>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="relative w-full h-44 rounded-2xl border-2 border-dashed border-adventure-border bg-adventure-bg hover:border-primary-300 hover:bg-primary-50 transition-all cursor-pointer flex items-center justify-center overflow-hidden group"
             >
-              <option value="">Select a species...</option>
-              {SPECIES_OPTIONS.map((s) => (
-                <option key={`species-${s}`} value={s}>{s}</option>
-              ))}
-            </select>
-            {errors.species && (
-              <p className={errorClass}>
-                <Icon name="ExclamationCircleIcon" size={13} />
-                {errors.species.message}
-              </p>
-            )}
-          </div>
-
-          {/* Custom species */}
-          {selectedSpecies === 'Other (specify below)' && (
-            <div className="fade-in">
-              <label htmlFor="customSpecies" className={labelClass}>
-                Species Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="customSpecies"
-                type="text"
-                placeholder="e.g. Mackerel, Bream..."
-                className={inputClass(!!errors.customSpecies)}
-                {...register('customSpecies', { required: 'Please enter the species name' })}
-              />
-              {errors.customSpecies && (
-                <p className={errorClass}>
-                  <Icon name="ExclamationCircleIcon" size={13} />
-                  {errors.customSpecies.message}
-                </p>
+              {photoPreview ? (
+                <>
+                  <img src={photoPreview} alt="Catch preview" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-white text-sm font-sans font-semibold">Change photo</span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center">
+                  <Icon name="CameraIcon" size={36} className="text-earth-300 mx-auto mb-2" />
+                  <p className="text-sm font-sans text-earth-400 font-semibold">Tap to add a photo</p>
+                  <p className="text-xs font-sans text-earth-300 mt-1">JPG, PNG, WebP or HEIC · max 10 MB</p>
+                </div>
               )}
             </div>
-          )}
-
-          {/* Date */}
-          <div>
-            <label htmlFor="date" className={labelClass}>
-              Date Caught <span className="text-red-500">*</span>
-            </label>
             <input
-              id="date"
-              type="date"
-              className={inputClass(!!errors.date)}
-              {...register('date', { required: 'Date is required' })}
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/heic"
+              onChange={handlePhotoChange}
+              className="hidden"
             />
-            {errors.date && (
-              <p className={errorClass}>
-                <Icon name="ExclamationCircleIcon" size={13} />
-                {errors.date.message}
-              </p>
-            )}
           </div>
 
-          {/* Weight + Length row */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Species typeahead */}
+          <div className="relative">
+            <label className={labelCls}>Species *</label>
+            <input
+              type="text"
+              value={form.speciesInput}
+              onChange={e => {
+                setForm(p => ({ ...p, speciesInput: e.target.value, species: e.target.value }));
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+              placeholder="Start typing — e.g. Carp, Pike, Mackerel..."
+              className={inputCls}
+            />
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 z-20 bg-white border border-adventure-border rounded-xl shadow-lg mt-1 overflow-hidden max-h-52 overflow-y-auto">
+                {suggestions.map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onMouseDown={() => handleSpeciesSelect(s)}
+                    className="w-full text-left px-4 py-2.5 text-sm font-sans text-primary-800 hover:bg-primary-50 transition-colors border-b border-adventure-border last:border-0"
+                  >
+                    🐟 {s}
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="text-xs font-sans text-earth-400 mt-1">
+              Can't find it? Just type the name and continue.
+            </p>
+          </div>
+
+          {/* Weight (lbs) + Length (cm) */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="weight" className={labelClass}>Weight (kg)</label>
-              <p className={helperClass}>Optional — best guess is fine</p>
+              <label className={labelCls}>Weight (lbs)</label>
               <input
-                id="weight"
                 type="number"
-                step="0.1"
                 min="0"
-                placeholder="e.g. 1.8"
-                className={inputClass(!!errors.weight)}
-                {...register('weight', {
-                  min: { value: 0, message: 'Weight must be positive' },
-                  max: { value: 100, message: 'That is one big fish!' },
-                })}
+                step="0.1"
+                value={form.weight}
+                onChange={e => setForm(p => ({ ...p, weight: e.target.value }))}
+                placeholder="e.g. 4.5"
+                className={inputCls}
               />
-              {errors.weight && (
-                <p className={errorClass}>
-                  <Icon name="ExclamationCircleIcon" size={13} />
-                  {errors.weight.message}
-                </p>
-              )}
             </div>
             <div>
-              <label htmlFor="length" className={labelClass}>Length (cm)</label>
-              <p className={helperClass}>Optional</p>
+              <label className={labelCls}>Length (cm)</label>
               <input
-                id="length"
                 type="number"
-                step="1"
                 min="0"
-                placeholder="e.g. 42"
-                className={inputClass(!!errors.length)}
-                {...register('length', {
-                  min: { value: 0, message: 'Must be positive' },
-                })}
+                step="0.5"
+                value={form.length}
+                onChange={e => setForm(p => ({ ...p, length: e.target.value }))}
+                placeholder="e.g. 45"
+                className={inputCls}
               />
-              {errors.length && (
-                <p className={errorClass}>
-                  <Icon name="ExclamationCircleIcon" size={13} />
-                  {errors.length.message}
-                </p>
-              )}
             </div>
           </div>
 
           {/* Location */}
           <div>
-            <label htmlFor="location" className={labelClass}>
-              Location <span className="text-red-500">*</span>
-            </label>
-            <p className={helperClass}>River, lake, or spot name</p>
+            <label className={labelCls}>Location</label>
             <input
-              id="location"
               type="text"
-              placeholder="e.g. Thredbo River, Lake Eildon..."
-              className={inputClass(!!errors.location)}
-              {...register('location', { required: 'Location is required' })}
+              value={form.location}
+              onChange={e => setForm(p => ({ ...p, location: e.target.value }))}
+              placeholder="e.g. River Severn, Bewdley"
+              className={inputCls}
             />
-            {errors.location && (
-              <p className={errorClass}>
-                <Icon name="ExclamationCircleIcon" size={13} />
-                {errors.location.message}
-              </p>
-            )}
           </div>
 
           {/* Water type */}
           <div>
-            <label htmlFor="waterType" className={labelClass}>Water Type</label>
-            <select
-              id="waterType"
-              className={inputClass(false)}
-              {...register('waterType')}
-            >
-              {['River', 'Lake', 'Sea', 'Dam', 'Creek', 'Estuary'].map((w) => (
-                <option key={`wt-${w}`} value={w}>{w}</option>
+            <label className={labelCls}>Water Type</label>
+            <div className="flex flex-wrap gap-2">
+              {WATER_TYPES.map(w => (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={() => setForm(p => ({ ...p, waterType: w }))}
+                  className={`px-4 py-2 rounded-xl text-sm font-sans font-semibold border transition-all ${
+                    form.waterType === w
+                      ? 'text-white border-transparent'
+                      : 'bg-adventure-bg border-adventure-border text-earth-500 hover:text-primary-700'
+                  }`}
+                  style={form.waterType === w ? { backgroundColor: '#ff751f', borderColor: '#ff751f' } : {}}
+                >
+                  {w}
+                </button>
               ))}
-            </select>
-          </div>
-
-          {/* Weather */}
-          <div>
-            <label htmlFor="weather" className={labelClass}>Weather Conditions</label>
-            <select
-              id="weather"
-              className={inputClass(false)}
-              {...register('weather')}
-            >
-              {['Sunny', 'Partly Cloudy', 'Overcast', 'Rainy', 'Foggy', 'Windy', 'Calm', 'Clear', 'Stormy'].map((w) => (
-                <option key={`wx-${w}`} value={w}>{w}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Bait */}
-          <div>
-            <label htmlFor="bait" className={labelClass}>Bait / Lure Used</label>
-            <input
-              id="bait"
-              type="text"
-              placeholder="e.g. Worm, Soft plastic, Dry fly..."
-              className={inputClass(false)}
-              {...register('bait')}
-            />
+            </div>
           </div>
 
           {/* Notes */}
           <div>
-            <label htmlFor="notes" className={labelClass}>Adventure Notes</label>
-            <p className={helperClass}>What was the trip like? Any special moments?</p>
+            <label className={labelCls}>Notes</label>
             <textarea
-              id="notes"
+              value={form.notes}
+              onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+              placeholder="Any details about the catch, conditions, bait used..."
               rows={3}
-              placeholder="Tell the story of this catch..."
-              className={`${inputClass(false)} resize-none`}
-              {...register('notes')}
+              className={`${inputCls} resize-none`}
             />
           </div>
 
-          {/* Required fields note */}
-          <p className="text-xs font-sans text-earth-400">
-            <span className="text-red-500">*</span> Required fields
-          </p>
+          {/* Error */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm font-sans rounded-xl px-4 py-3 flex items-center gap-2">
+              <Icon name="ExclamationCircleIcon" size={16} />
+              {error}
+            </div>
+          )}
 
-          {/* Sticky footer */}
-          <div className="sticky bottom-0 bg-white border-t border-adventure-border -mx-6 px-6 py-4 flex gap-3">
+          {/* Pending notice */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+            <p className="text-xs font-sans text-amber-700">
+              <span className="font-bold">Heads up:</span> Your catch will be submitted for review. Once approved by the Voyagers Hook team it'll appear in your log and earn you XP!
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pb-2">
             <button
-              type="button"
               onClick={onClose}
-              className="flex-1 py-3 rounded-xl border border-adventure-border text-primary-700 font-sans font-semibold text-sm hover:bg-primary-50 transition-colors"
+              className="flex-1 py-3 rounded-xl border border-adventure-border text-sm font-sans font-semibold text-earth-500 hover:bg-earth-50 transition-colors"
             >
               Cancel
             </button>
             <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`
-                flex-1 py-3 rounded-xl font-sans font-semibold text-sm
-                bg-primary-500 text-white
-                flex items-center justify-center gap-2
-                transition-all duration-150 active:scale-95
-                ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary-600 shadow-card'}
-              `}
+              onClick={handleSubmit}
+              disabled={saving || !form.species.trim()}
+              className="flex-1 py-3 rounded-xl text-white text-sm font-sans font-semibold disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
+              style={{ backgroundColor: '#ff751f' }}
             >
-              {isSubmitting ? (
+              {saving ? (
                 <>
                   <Icon name="ArrowPathIcon" size={16} className="animate-spin" />
-                  Saving Catch...
+                  {photoFile ? 'Uploading...' : 'Saving...'}
                 </>
               ) : (
                 <>
-                  <Icon name="CheckCircleIcon" size={16} />
-                  Save Catch
+                  <Icon name="CheckIcon" size={16} />
+                  Submit Catch
                 </>
               )}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </>
   );
