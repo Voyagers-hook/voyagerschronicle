@@ -9,14 +9,13 @@ import { useAuth } from '@/contexts/AuthContext';
 interface CatchEntry {
   id: string;
   species: string;
-  weight_kg: number | null;
+  weight_lbs: number | null;
   length_cm: number | null;
   location: string | null;
   catch_status: string;
   submitted_at: string;
+  photo_url: string | null;
 }
-
-const speciesEmojis: Record<string, string> = {};
 
 const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
   approved: { label: 'Approved', bg: 'bg-green-100', text: 'text-green-700' },
@@ -33,6 +32,11 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 7)} weeks ago`;
 }
 
+// Check if URL is likely a HEIC file (can't render in browser)
+function isHeic(url: string): boolean {
+  return url.toLowerCase().includes('.heic') || url.toLowerCase().includes('.heif');
+}
+
 export default function RecentCatchActivity() {
   const { user } = useAuth();
   const [catches, setCatches] = useState<CatchEntry[]>([]);
@@ -43,11 +47,12 @@ export default function RecentCatchActivity() {
     const supabase = createClient();
     supabase
       .from('catch_submissions')
-      .select('id, species, weight_kg, length_cm, location, catch_status, submitted_at')
+      .select('id, species, weight_lbs, length_cm, location, catch_status, submitted_at, photo_url')
       .eq('user_id', user.id)
       .order('submitted_at', { ascending: false })
       .limit(5)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) console.error('Catch fetch error:', error);
         setCatches(data || []);
         setLoading(false);
       });
@@ -96,21 +101,44 @@ export default function RecentCatchActivity() {
         <div className="space-y-3">
           {catches.map((c) => {
             const status = statusConfig[c.catch_status] || statusConfig.pending;
+            const hasPhoto = !!c.photo_url && !isHeic(c.photo_url);
+            const isHeicPhoto = !!c.photo_url && isHeic(c.photo_url);
+
             return (
               <div key={c.id} className="flex items-center gap-3 p-3 rounded-2xl bg-adventure-bg border border-adventure-border hover:border-primary-200 transition-colors">
-                <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #2D6A4F, #3D9068)' }}>
-                  <Icon name="SparklesIcon" size={20} className="text-white" />
+                {/* Photo or fallback icon */}
+                <div className="w-11 h-11 rounded-2xl flex-shrink-0 overflow-hidden">
+                  {hasPhoto ? (
+                    <img
+                      src={c.photo_url!}
+                      alt={c.species}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-full flex items-center justify-center"
+                      style={{ background: 'linear-gradient(135deg, #2D6A4F, #3D9068)' }}
+                      title={isHeicPhoto ? 'HEIC photo — upload as JPG/PNG to display' : ''}
+                    >
+                      {isHeicPhoto
+                        ? <Icon name="PhotoIcon" size={18} className="text-white/60" />
+                        : <Icon name="SparklesIcon" size={20} className="text-white" />
+                      }
+                    </div>
+                  )}
                 </div>
+
                 <div className="flex-1 min-w-0">
                   <p className="font-sans font-semibold text-primary-800 text-sm truncate">{c.species}</p>
                   <p className="text-xs font-sans text-earth-400">
-                    {c.weight_kg ? `${c.weight_kg}kg` : ''}
-                    {c.weight_kg && c.length_cm ? ' · ' : ''}
+                    {c.weight_lbs ? `${c.weight_lbs} lbs` : ''}
+                    {c.weight_lbs && c.length_cm ? ' · ' : ''}
                     {c.length_cm ? `${c.length_cm}cm` : ''}
-                    {(c.weight_kg || c.length_cm) && c.location ? ' · ' : ''}
+                    {(c.weight_lbs || c.length_cm) && c.location ? ' · ' : ''}
                     {c.location || ''}
                   </p>
                 </div>
+
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
                   <span className={`text-xs font-sans font-bold px-2 py-0.5 rounded-full ${status.bg} ${status.text}`}>
                     {status.label}
