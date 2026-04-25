@@ -44,7 +44,7 @@ export default function CatchStatsBar({ catches }: CatchStatsBarProps) {
       id: 'stat-biggest',
       icon: '🏆',
       label: 'Biggest Catch',
-      value: biggestWeight > 0 ? `${biggestWeight} kg` : '—',
+      value: biggestWeight > 0 ? `${biggestWeight} lbs` : '—',
       sub: biggestCatch?.species || '—',
       color: 'border-amber-200 bg-amber-50',
       textColor: 'text-amber-700',
