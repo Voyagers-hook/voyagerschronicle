@@ -71,7 +71,7 @@ export default function LoginForm() {
                 <Icon name="EnvelopeIcon" size={26} className="text-white" />
               </div>
               <h2 style={{ fontFamily: "'Nunito', sans-serif", fontWeight: 800, fontSize: '1.6rem', color: '#FFFFFF', marginBottom: '0.5rem' }}>
-                Check Your Inbox! 🎣
+                Check Your Inbox! 
               </h2>
               <p className="font-sans text-sm leading-relaxed mb-6" style={{ color: 'rgba(255,255,255,0.7)' }}>
                 Magic link sent to{' '}
