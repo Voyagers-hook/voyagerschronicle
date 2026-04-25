@@ -10,7 +10,7 @@ interface Reward {
   id: string;
   title: string;
   description: string | null;
-  xp_cost: number;
+  points_cost: number;
   reward_type: string;
   icon: string;
   image_url: string | null;
@@ -21,7 +21,7 @@ interface Reward {
 interface Redemption {
   id: string;
   reward_title: string;
-  xp_cost: number;
+  points_cost: number;
   status: 'pending' | 'fulfilled' | 'declined';
   redeemed_at: string;
   admin_notes: string | null;
@@ -66,10 +66,10 @@ export default function RewardsPage() {
     setLoading(true);
 
     const [rewardsRes, profileRes, redemptionsRes] = await Promise.all([
-      supabase.from('rewards_catalogue').select('*').eq('active', true).order('xp_cost'),
+      supabase.from('rewards_catalogue').select('*').eq('active', true).order('points_cost'),
       supabase.from('user_profiles').select('xp').eq('id', user.id).single(),
       supabase.from('rewards_redemptions')
-        .select('id, reward_title, xp_cost, status, redeemed_at, admin_notes')
+        .select('id, reward_title, points_cost, status, redeemed_at, admin_notes')
         .eq('user_id', user.id)
         .order('redeemed_at', { ascending: false }),
     ]);
@@ -182,7 +182,7 @@ export default function RewardsPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {rewards.map(reward => {
-                  const canAfford = userXP >= reward.xp_cost;
+                  const canAfford = userXP >= reward.points_cost;
                   return (
                     <div key={reward.id}
                       className={`bg-white rounded-2xl border shadow-card overflow-hidden flex flex-col transition-all ${canAfford ? 'border-adventure-border hover:shadow-lg' : 'border-adventure-border opacity-70'}`}>
@@ -209,7 +209,7 @@ export default function RewardsPage() {
                         <div className="flex items-center justify-between mt-auto pt-3 border-t border-adventure-border">
                           <div className="flex items-center gap-1.5">
                             <Icon name="BoltIcon" size={14} className="text-amber-500" />
-                            <span className="font-display text-lg text-amber-600">{reward.xp_cost.toLocaleString()}</span>
+                            <span className="font-display text-lg text-amber-600">{reward.points_cost.toLocaleString()}</span>
                             <span className="text-xs font-sans text-earth-400">XP</span>
                           </div>
                           <button
@@ -228,7 +228,7 @@ export default function RewardsPage() {
 
                         {!canAfford && (
                           <p className="text-xs font-sans text-earth-400 mt-2 text-right">
-                            You need {(reward.xp_cost - userXP).toLocaleString()} more XP
+                            You need {(reward.points_cost - userXP).toLocaleString()} more XP
                           </p>
                         )}
                       </div>
@@ -263,7 +263,7 @@ export default function RewardsPage() {
                     <p className="font-sans font-semibold text-sm text-primary-800">{r.reward_title}</p>
                     <p className="text-xs font-sans text-earth-400">
                       {new Date(r.redeemed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      {' · '}{r.xp_cost} XP spent
+                      {' · '}{r.points_cost} XP spent
                     </p>
                     {r.admin_notes && (
                       <p className="text-xs font-sans text-primary-600 mt-1 bg-primary-50 rounded-lg px-2 py-1">
@@ -296,10 +296,10 @@ export default function RewardsPage() {
               </div>
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center">
                 <p className="text-sm font-sans text-amber-700">
-                  This will deduct <span className="font-bold">{confirming.xp_cost.toLocaleString()} XP</span> from your balance.
+                  This will deduct <span className="font-bold">{confirming.points_cost.toLocaleString()} XP</span> from your balance.
                 </p>
                 <p className="text-xs font-sans text-amber-600 mt-1">
-                  You have {userXP.toLocaleString()} XP → you'll have {(userXP - confirming.xp_cost).toLocaleString()} XP after
+                  You have {userXP.toLocaleString()} XP → you'll have {(userXP - confirming.points_cost).toLocaleString()} XP after
                 </p>
               </div>
               <p className="text-xs font-sans text-earth-400 text-center">
