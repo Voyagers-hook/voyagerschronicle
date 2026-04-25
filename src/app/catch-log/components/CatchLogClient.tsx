@@ -47,14 +47,14 @@ export default function CatchLogClient() {
       const mapped: CatchEntry[] = (data ?? []).map((row) => ({
         id: row.id,
         species: row.species,
-        weight: row.weight_kg ?? 0,
+        weight: row.weight_lbs ?? 0,
         length: row.length_cm ?? 0,
         location: row.location ?? '',
         notes: row.notes ?? '',
         waterType: row.water_type ?? 'River',
         date: row.submitted_at,
         status: row.catch_status as 'pending' | 'approved' | 'rejected',
-        imageUrl: row.image_url ?? '',
+        photoUrl: row.photo_url ?? undefined,
       }));
 
       setCatches(mapped);
