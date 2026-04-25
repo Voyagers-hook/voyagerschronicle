@@ -70,12 +70,12 @@ export default function LoginForm() {
               >
                 <Icon name="EnvelopeIcon" size={26} className="text-white" />
               </div>
-              <h2 style={{ fontFamily: "'Nunito', sans-serif", fontWeight: 800, fontSize: '1.6rem', color: 'white', marginBottom: '0.5rem' }}>
+              <h2 style={{ fontFamily: "'Nunito', sans-serif", fontWeight: 800, fontSize: '1.6rem', color: '#F8F4E3', marginBottom: '0.5rem' }}>
                 Check Your Inbox! 🎣
               </h2>
               <p className="font-sans text-sm leading-relaxed mb-6" style={{ color: 'rgba(255,255,255,0.7)' }}>
                 Magic link sent to{' '}
-                <span style={{ color: 'white', fontWeight: 600 }}>{email}</span>.
+                <span style={{ color: '#F8F4E3', fontWeight: 600 }}>{email}</span>.
                 <br />Click it to dive in — no password needed!
               </p>
               <button
@@ -90,7 +90,7 @@ export default function LoginForm() {
             <>
               {/* Heading */}
               <div className="mb-6" style={{ textAlign: 'center' }}>
-                <h2 style={{ fontFamily: "'Henny Penny', cursive", fontWeight: 900, fontSize: '2rem', lineHeight: 1.15, color: 'ffffff', marginBottom: '0.35rem' }}>
+                <h2 style={{ fontFamily: "'Henny Penny', cursive", fontWeight: 900, fontSize: '2rem', lineHeight: 1.15, color: '#F8F4E3', marginBottom: '0.35rem' }}>
   Welcome back,{' '}
   <span 
     style={{ 
