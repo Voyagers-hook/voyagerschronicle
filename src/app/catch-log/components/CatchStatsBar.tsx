@@ -1,7 +1,6 @@
 import React from 'react';
 import { CatchEntry } from './catchData';
 
-
 interface CatchStatsBarProps {
   catches: CatchEntry[];
 }
@@ -11,16 +10,13 @@ export default function CatchStatsBar({ catches }: CatchStatsBarProps) {
 
   const uniqueSpecies = new Set(catches.map((c) => c.species)).size;
 
-  const weights = catches
-    .map((c) => parseFloat(c.weight.replace(' kg', '')))
-    .filter((w) => !isNaN(w));
+  // weight is now a number from Supabase, not a string
+  const weights = catches.map((c) => Number(c.weight)).filter((w) => !isNaN(w) && w > 0);
   const biggestWeight = weights.length > 0 ? Math.max(...weights) : 0;
-  const biggestCatch = catches.find(
-    (c) => parseFloat(c.weight.replace(' kg', '')) === biggestWeight
-  );
+  const biggestCatch = catches.find((c) => Number(c.weight) === biggestWeight);
 
   const waterTypes = catches.reduce<Record<string, number>>((acc, c) => {
-    acc[c.waterType] = (acc[c.waterType] || 0) + 1;
+    if (c.waterType) acc[c.waterType] = (acc[c.waterType] || 0) + 1;
     return acc;
   }, {});
   const topWater = Object.entries(waterTypes).sort((a, b) => b[1] - a[1])[0];
@@ -48,7 +44,7 @@ export default function CatchStatsBar({ catches }: CatchStatsBarProps) {
       id: 'stat-biggest',
       icon: '🏆',
       label: 'Biggest Catch',
-      value: `${biggestWeight} kg`,
+      value: biggestWeight > 0 ? `${biggestWeight} kg` : '—',
       sub: biggestCatch?.species || '—',
       color: 'border-amber-200 bg-amber-50',
       textColor: 'text-amber-700',
@@ -58,7 +54,7 @@ export default function CatchStatsBar({ catches }: CatchStatsBarProps) {
       icon: '🌊',
       label: 'Favourite Water',
       value: topWater ? topWater[0] : '—',
-      sub: topWater ? `${topWater[1]} catches` : '',
+      sub: topWater ? `${topWater[1]} catches` : 'no data yet',
       color: 'border-blue-200 bg-blue-50',
       textColor: 'text-blue-700',
     },
