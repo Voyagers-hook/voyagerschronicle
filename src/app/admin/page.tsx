@@ -60,13 +60,13 @@ interface Card {
 }
 
 // Exactly matches rewards_catalogue columns:
-// id, title, description, xp_cost, reward_type, icon, active,
+// id, title, description, points_cost, reward_type, icon, active,
 // stock, created_at, updated_at, link, image_url,
 interface Reward {
   id: string;
   title: string;
   description: string | null;
-  xp_cost: number;
+  points_cost: number;
   reward_type: string;
   icon: string;
   active: boolean;
@@ -120,7 +120,7 @@ interface FishingTip {
 const blankReward: Omit<Reward, 'id'> = {
   title: '',
   description: '',
-  xp_cost: 100,
+  points_cost: 100,
   reward_type: 'general',
   icon: 'GiftIcon',
   active: true,
@@ -203,7 +203,7 @@ export default function AdminPage() {
     const [subsRes, cardsRes, rewardsRes, membersRes, qRes, factsRes, tipsRes] = await Promise.all([
       supabase.from('catch_submissions').select('*, user_profiles(username)').order('submitted_at', { ascending: false }),
       supabase.from('cards').select('*').order('card_number'),
-      supabase.from('rewards_catalogue').select('*').order('xp_cost', { ascending: true }),
+      supabase.from('rewards_catalogue').select('*').order('points_cost', { ascending: true }),
       supabase.from('user_profiles').select('id, username, email, level, membership_tier, total_points').eq('role', 'member'),
       supabase.from('quiz_questions').select('*').order('created_at'),
       supabase.from('fun_facts').select('*').order('created_at'),
@@ -336,7 +336,7 @@ export default function AdminPage() {
     const payload = {
       title:               rewardForm.title.trim(),
       description:         rewardForm.description || null,
-      xp_cost:             Number(rewardForm.xp_cost),
+      points_cost:             Number(rewardForm.points_cost),
       reward_type:         rewardForm.reward_type,
       icon:                rewardForm.icon,
       active:              rewardForm.active,
@@ -807,7 +807,7 @@ export default function AdminPage() {
                 <h3 className="font-display text-xl text-primary-800 mb-5">{editingReward ? 'Edit Reward' : 'New Reward Item'}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div><label className={labelCls}>Reward Title *</label><input className={inputCls} value={rewardForm.title} onChange={e => setRewardForm(p => ({ ...p, title: e.target.value }))} /></div>
-                  <div><label className={labelCls}>XP Cost *</label><input type="number" min={1} className={inputCls} value={rewardForm.xp_cost} onChange={e => setRewardForm(p => ({ ...p, xp_cost: Number(e.target.value) }))} /></div>
+                  <div><label className={labelCls}>XP Cost *</label><input type="number" min={1} className={inputCls} value={rewardForm.points_cost} onChange={e => setRewardForm(p => ({ ...p, points_cost: Number(e.target.value) }))} /></div>
                   <div>
                     <label className={labelCls}>Type</label>
                     <select className={inputCls} value={rewardForm.reward_type} onChange={e => setRewardForm(p => ({ ...p, reward_type: e.target.value }))}>
@@ -879,14 +879,14 @@ export default function AdminPage() {
                       <div>
                         <p className="font-semibold text-primary-800 text-sm">{reward.title}</p>
                         <p className="text-xs text-earth-400">
-                          {reward.xp_cost} XP
+                          {reward.points_cost} XP
                           {reward.stock !== null && ` · Stock: ${reward.stock}`}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className={`w-2 h-2 rounded-full ${reward.active ? 'bg-green-500' : 'bg-red-500'}`} title={reward.active ? 'Active' : 'Inactive'} />
-                      <button onClick={() => { setEditingReward(reward); setRewardForm({ title: reward.title, description: reward.description, xp_cost: reward.xp_cost, reward_type: reward.reward_type, icon: reward.icon, active: reward.active, stock: reward.stock, link: reward.link, image_url: reward.image_url, }); setShowRewardForm(true); }} className="p-1.5 text-earth-400 hover:text-primary-600"><Icon name="PencilSquareIcon" size={15} /></button>
+                      <button onClick={() => { setEditingReward(reward); setRewardForm({ title: reward.title, description: reward.description, points_cost: reward.points_cost, reward_type: reward.reward_type, icon: reward.icon, active: reward.active, stock: reward.stock, link: reward.link, image_url: reward.image_url, }); setShowRewardForm(true); }} className="p-1.5 text-earth-400 hover:text-primary-600"><Icon name="PencilSquareIcon" size={15} /></button>
                       <button onClick={() => deleteReward(reward.id)} className="p-1.5 text-earth-400 hover:text-red-500"><Icon name="TrashIcon" size={15} /></button>
                     </div>
                   </div>
