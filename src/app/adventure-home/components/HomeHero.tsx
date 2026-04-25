@@ -16,6 +16,12 @@ interface UserProfile {
   total_points: number;
 }
 
+// XP needed to reach each next level — matches get_level_from_xp DB function
+const XP_THRESHOLDS: Record<number, number> = {
+  1: 150, 2: 400, 3: 750, 4: 1200, 5: 1800,
+  6: 2500, 7: 3400, 8: 4500, 9: 6000, 10: 6000,
+};
+
 const FLOATING_ITEMS = [
   { type: 'fish', color: 'rgba(59,130,246,0.8)',  x: '88%', y: '12%', size: 32, delay: '0s',   duration: '3.2s' },
   { type: 'star', color: 'rgba(245,158,11,0.9)',  x: '92%', y: '55%', size: 24, delay: '0.8s', duration: '2.5s' },
@@ -41,16 +47,13 @@ export default function HomeHero() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [collectedCount, setCollectedCount] = useState(0);
-  const [nextLevelXp, setNextLevelXp] = useState<number>(50);
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
     if (!user) { setLoading(false); return; }
-
     const supabase = createClient();
-
     Promise.all([
       supabase
         .from('user_profiles')
@@ -61,28 +64,20 @@ export default function HomeHero() {
         .from('user_cards')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id),
-    ]).then(async ([profResult, countResult]) => {
-      if (profResult.data) {
-        setProfile(profResult.data);
-        const nextLevel = (profResult.data.level ?? 1) + 1;
-        const { data: threshold } = await supabase
-          .from('level_thresholds')
-          .select('xp_required')
-          .eq('level', nextLevel)
-          .single();
-        if (threshold) setNextLevelXp(threshold.xp_required);
-      }
+    ]).then(([profResult, countResult]) => {
+      if (profResult.data) setProfile(profResult.data);
       setCollectedCount(countResult.count || 0);
       setLoading(false);
     });
   }, [user]);
 
-  const displayName = profile?.username || user?.email?.split('@')[0] || 'Captain';
-  const xp     = profile?.xp ?? 0;
-  const level  = profile?.level ?? 1;
-  const streak = profile?.streak_weeks ?? 0;
-  const tier   = profile?.membership_tier ?? 'Novice Angler';
-  const xpProgress = Math.min(Math.round((xp / nextLevelXp) * 100), 100);
+  const displayName  = profile?.username || user?.email?.split('@')[0] || 'Captain';
+  const xp           = profile?.xp ?? 0;
+  const level        = profile?.level ?? 1;
+  const streak       = profile?.streak_weeks ?? 0;
+  const tier         = profile?.membership_tier ?? 'Novice Angler';
+  const nextLevelXp  = XP_THRESHOLDS[level] ?? 6000;
+  const xpProgress   = Math.min(Math.round((xp / nextLevelXp) * 100), 100);
 
   return (
     <div className="relative overflow-hidden rounded-3xl p-6 lg:p-8"
@@ -135,7 +130,7 @@ export default function HomeHero() {
           </div>
         </div>
 
-        {/* Right — CTA + combined level/XP widget */}
+        {/* Right — CTA + level/XP widget */}
         <div className="flex flex-col sm:items-end gap-3">
           <Link
             href="/catch-log"
@@ -146,7 +141,7 @@ export default function HomeHero() {
             Log a Catch
           </Link>
 
-          {/* Combined level badge + XP bar */}
+          {/* XP / level bar */}
           <div className="w-full sm:w-56 rounded-2xl border border-white/20 p-3"
             style={{ backgroundColor: 'rgba(255,117,31,0.15)' }}>
             <div className="flex items-center justify-between mb-2">
@@ -166,15 +161,13 @@ export default function HomeHero() {
                 <div className="h-full w-full bg-white/10 animate-pulse rounded-full" />
               ) : (
                 <div
-                  className="h-full rounded-full transition-all duration-700 relative overflow-hidden"
+                  className="h-full rounded-full transition-all duration-700"
                   style={{
                     width: xpProgress > 0 ? `${xpProgress}%` : '2px',
                     background: 'linear-gradient(90deg, #ff751f, #E9A23B)',
                     minWidth: xpProgress > 0 ? undefined : '2px',
                   }}
-                >
-                  <div className="absolute inset-0 foil-shimmer opacity-60" />
-                </div>
+                />
               )}
             </div>
             <div className="flex justify-between mt-1.5">
