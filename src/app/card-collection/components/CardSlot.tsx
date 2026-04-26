@@ -23,25 +23,151 @@ const rarityBorderWidth: Record<string, string> = {
   Legendary:  '3px',
 };
 
+const rarityCardBack: Record<string, { bg: string; border: string; badge: string }> = {
+  Widespread: { bg: 'from-earth-700 to-earth-900',     border: '#c49050', badge: 'bg-amber-700' },
+  Elusive:    { bg: 'from-green-800 to-green-950',     border: '#2D6A4F', badge: 'bg-green-700' },
+  Specimen:   { bg: 'from-blue-700 to-blue-950',       border: '#3B82F6', badge: 'bg-blue-600'  },
+  Legendary:  { bg: 'from-amber-700 to-amber-950',     border: '#F59E0B', badge: 'bg-amber-500' },
+};
+
+// ── Hint modal for uncollected cards ─────────────────────────────────────────
+function HintModal({ card, onClose }: { card: FishingCard; onClose: () => void }) {
+  const rarity = rarityConfig[card.rarity];
+  const back = rarityCardBack[card.rarity];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Card back preview at top */}
+        <div className={`bg-gradient-to-br ${back.bg} p-8 flex flex-col items-center gap-3`}>
+          <div className="w-16 h-16 rounded-2xl bg-white/10 border-2 border-white/20 flex items-center justify-center">
+            <Icon name="LockClosedIcon" size={30} className="text-white/60" />
+          </div>
+          <p className="text-white/50 text-xs font-sans font-semibold tracking-widest uppercase">
+            Card #{String(card.cardNumber).padStart(3, '0')}
+          </p>
+          <span className={`text-white text-xs font-bold px-3 py-1 rounded-full ${back.badge}`}>
+            {card.rarity}
+          </span>
+        </div>
+
+        {/* Hint content */}
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${rarity?.color ?? '#ff751f'}20` }}>
+              <Icon name="LightBulbIcon" size={16} style={{ color: rarity?.color ?? '#ff751f' }} />
+            </div>
+            <h3 className="font-display text-lg text-primary-800">Collector's Hint</h3>
+          </div>
+
+          {card.hint ? (
+            <p className="text-sm font-sans text-earth-600 leading-relaxed bg-adventure-bg rounded-2xl p-4 border border-adventure-border">
+              "{card.hint}"
+            </p>
+          ) : (
+            <p className="text-sm font-sans text-earth-400 italic">
+              No hint available yet. Keep fishing and exploring to unlock this card!
+            </p>
+          )}
+
+          {card.habitat && (
+            <div className="flex items-center gap-2 text-xs font-sans text-earth-500">
+              <Icon name="MapPinIcon" size={14} className="text-earth-400" />
+              <span>Habitat: <span className="font-semibold text-primary-700">{card.habitat}</span></span>
+            </div>
+          )}
+
+          <p className="text-xs font-sans text-earth-400 text-center">
+            Open a pack or complete challenges to collect this card!
+          </p>
+
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 rounded-xl text-white font-sans font-semibold text-sm transition-colors"
+            style={{ backgroundColor: '#ff751f' }}
+          >
+            Got it!
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── CardSlot ──────────────────────────────────────────────────────────────────
 export default function CardSlot({ card, onClick }: CardSlotProps) {
   const [hovered, setHovered] = useState(false);
+  const [showHint, setShowHint] = useState(false);
   const rarity = rarityConfig[card.rarity];
   const isShiny = card.rarity === 'Specimen' || card.rarity === 'Legendary';
+  const back = rarityCardBack[card.rarity];
 
+  // ── Uncollected — show card back silhouette, hint on click ────────────────
   if (!card.collected) {
     return (
-      <div
-        className="relative aspect-[2/3] rounded-2xl border-2 border-dashed border-adventure-border bg-adventure-bg flex flex-col items-center justify-center gap-2 cursor-default"
-        title={`Card #${card.cardNumber} — Not yet collected`}
-      >
-        <div className="w-10 h-10 rounded-xl bg-earth-100 flex items-center justify-center">
-          <Icon name="LockClosedIcon" size={20} className="text-earth-300" />
+      <>
+        <div
+          className="relative aspect-[2/3] rounded-2xl cursor-pointer select-none overflow-hidden"
+          style={{ perspective: '600px' }}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          onClick={() => setShowHint(true)}
+          title={`Card #${String(card.cardNumber).padStart(3, '0')} — Click for a hint`}
+        >
+          <div
+            className="w-full h-full rounded-2xl transition-all duration-300"
+            style={{
+              transform: hovered ? 'rotateY(6deg) rotateX(-4deg) scale(1.04)' : 'rotateY(0) rotateX(0) scale(1)',
+              transformStyle: 'preserve-3d',
+            }}
+          >
+            {/* Card back face */}
+            <div
+              className={`w-full h-full rounded-2xl overflow-hidden bg-gradient-to-br ${back.bg} flex flex-col items-center justify-between p-3`}
+              style={{
+                border: `2px solid ${back.border}40`,
+                boxShadow: hovered
+                  ? `0 0 16px 4px ${back.border}40, 0 8px 24px rgba(0,0,0,0.3)`
+                  : '0 2px 8px rgba(0,0,0,0.2)',
+              }}
+            >
+              {/* Top — card number */}
+              <span className="text-white/30 text-[10px] font-sans font-bold tracking-widest self-start">
+                #{String(card.cardNumber).padStart(3, '0')}
+              </span>
+
+              {/* Centre — lock icon */}
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }}
+                >
+                  <Icon name="LockClosedIcon" size={22} className="text-white/40" />
+                </div>
+                {hovered && (
+                  <span className="text-white/60 text-[10px] font-sans font-semibold tracking-wide animate-pulse">
+                    Tap for hint
+                  </span>
+                )}
+              </div>
+
+              {/* Bottom — rarity badge */}
+              <span className={`text-white text-[10px] font-sans font-bold px-2 py-0.5 rounded-full ${back.badge} opacity-80`}>
+                {card.rarity}
+              </span>
+            </div>
+          </div>
         </div>
-        <span className="text-xs font-sans text-earth-300 font-medium">#{String(card.cardNumber).padStart(3, '0')}</span>
-      </div>
+
+        {showHint && <HintModal card={card} onClose={() => setShowHint(false)} />}
+      </>
     );
   }
 
+  // ── Collected — full card display (unchanged) ─────────────────────────────
   return (
     <div
       className="relative aspect-[2/3] rounded-2xl cursor-pointer select-none"
@@ -59,7 +185,6 @@ export default function CardSlot({ card, onClick }: CardSlotProps) {
           transformStyle: 'preserve-3d',
         }}
       >
-        {/* Card face */}
         <div
           className="w-full h-full rounded-2xl overflow-hidden flex flex-col relative"
           style={{
@@ -71,80 +196,40 @@ export default function CardSlot({ card, onClick }: CardSlotProps) {
               : `0 2px 8px rgba(0,0,0,0.1)`,
           }}
         >
-          {/* Card header gradient */}
           <div className={`bg-gradient-to-br ${card.gradient} flex-1 flex flex-col items-center justify-center p-3 relative overflow-hidden`}>
-
-            {/* Legendary: animated rainbow prismatic overlay */}
             {card.rarity === 'Legendary' && (
               <>
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(255,0,128,0.25) 0%, rgba(255,165,0,0.25) 20%, rgba(255,255,0,0.25) 40%, rgba(0,255,128,0.25) 60%, rgba(0,128,255,0.25) 80%, rgba(128,0,255,0.25) 100%)',
-                    backgroundSize: '300% 300%',
-                    animation: 'legendaryRainbow 3s ease infinite',
-                    mixBlendMode: 'overlay',
-                  }}
-                />
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background: 'linear-gradient(45deg, transparent 20%, rgba(255,255,255,0.8) 50%, transparent 80%)',
-                    backgroundSize: '200% 200%',
-                    animation: 'foilShimmer 2s ease infinite',
-                  }}
-                />
-                {/* Star sparkles */}
+                <div className="absolute inset-0 pointer-events-none"
+                  style={{ background: 'linear-gradient(135deg, rgba(255,0,128,0.25) 0%, rgba(255,165,0,0.25) 20%, rgba(255,255,0,0.25) 40%, rgba(0,255,128,0.25) 60%, rgba(0,128,255,0.25) 80%, rgba(128,0,255,0.25) 100%)', backgroundSize: '300% 300%', animation: 'legendaryRainbow 3s ease infinite', mixBlendMode: 'overlay' }} />
+                <div className="absolute inset-0 pointer-events-none"
+                  style={{ background: 'linear-gradient(45deg, transparent 20%, rgba(255,255,255,0.8) 50%, transparent 80%)', backgroundSize: '200% 200%', animation: 'foilShimmer 2s ease infinite' }} />
                 <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-yellow-300 opacity-80 animate-ping" style={{ animationDuration: '1.5s' }} />
                 <div className="absolute bottom-2 left-1 w-2 h-2 rounded-full bg-amber-400 opacity-60 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
               </>
             )}
-
-            {/* Specimen: blue-silver holographic shimmer */}
             {card.rarity === 'Specimen' && (
               <>
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(147,197,253,0.3) 0%, rgba(196,181,253,0.3) 33%, rgba(167,243,208,0.3) 66%, rgba(147,197,253,0.3) 100%)',
-                    backgroundSize: '200% 200%',
-                    animation: 'specimenHolo 4s ease infinite',
-                    mixBlendMode: 'overlay',
-                  }}
-                />
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background: 'linear-gradient(135deg, transparent 25%, rgba(255,255,255,0.6) 50%, transparent 75%)',
-                    backgroundSize: '200% 200%',
-                    animation: 'foilShimmer 2.5s ease infinite',
-                  }}
-                />
+                <div className="absolute inset-0 pointer-events-none"
+                  style={{ background: 'linear-gradient(135deg, rgba(147,197,253,0.3) 0%, rgba(196,181,253,0.3) 33%, rgba(167,243,208,0.3) 66%, rgba(147,197,253,0.3) 100%)', backgroundSize: '200% 200%', animation: 'specimenHolo 4s ease infinite', mixBlendMode: 'overlay' }} />
+                <div className="absolute inset-0 pointer-events-none"
+                  style={{ background: 'linear-gradient(135deg, transparent 25%, rgba(255,255,255,0.6) 50%, transparent 75%)', backgroundSize: '200% 200%', animation: 'foilShimmer 2.5s ease infinite' }} />
               </>
             )}
-
-            {/* Standard foil shimmer for foil cards */}
             {card.foil && card.rarity !== 'Legendary' && card.rarity !== 'Specimen' && (
-              <div
-                className="absolute inset-0 opacity-30 pointer-events-none foil-shimmer"
-              />
+              <div className="absolute inset-0 opacity-30 pointer-events-none foil-shimmer" />
             )}
-
-           {/* Card image or icon */}
-{card.image ? (
-  <div className="absolute inset-0 z-0">
-    <img src={card.image} alt={card.name} className="w-full h-full object-cover" />
-    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-  </div>
-) : (
-  <div className="relative z-10 flex flex-col items-center">
-    <div className="w-12 h-12 rounded-xl bg-white/25 flex items-center justify-center mb-1 shadow-lg border border-white/30">
-      <Icon name="SparklesIcon" size={22} className="text-white" />
-    </div>
-  </div>
-)}
-
-            {/* Rarity crown for Legendary */}
+            {card.image ? (
+              <div className="absolute inset-0 z-0">
+                <img src={card.image} alt={card.name} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              </div>
+            ) : (
+              <div className="relative z-10 flex flex-col items-center">
+                <div className="w-12 h-12 rounded-xl bg-white/25 flex items-center justify-center mb-1 shadow-lg border border-white/30">
+                  <Icon name="SparklesIcon" size={22} className="text-white" />
+                </div>
+              </div>
+            )}
             {card.rarity === 'Legendary' && (
               <div className="absolute top-1.5 left-1.5 z-20">
                 <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center shadow-lg">
@@ -152,8 +237,6 @@ export default function CardSlot({ card, onClick }: CardSlotProps) {
                 </div>
               </div>
             )}
-
-            {/* Specimen badge */}
             {card.rarity === 'Specimen' && (
               <div className="absolute top-1.5 left-1.5 z-20">
                 <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
@@ -162,23 +245,14 @@ export default function CardSlot({ card, onClick }: CardSlotProps) {
               </div>
             )}
           </div>
-
-      {/* Legendary gold shimmer over image */}
           {card.rarity === 'Legendary' && (
             <div className="absolute inset-0 opacity-20 pointer-events-none z-10"
               style={{ background: 'linear-gradient(90deg, transparent, rgba(245,158,11,0.5), transparent)', backgroundSize: '200% 100%', animation: 'foilShimmer 2s ease infinite' }} />
           )}
         </div>
-
-        {/* Outer glow ring on hover */}
         {hovered && (
           <div className="absolute inset-0 rounded-2xl pointer-events-none"
-            style={{
-              boxShadow: isShiny
-                ? `0 0 0 2px ${card.borderColor}, 0 0 40px 8px ${rarityGlowColors[card.rarity]}`
-                : `0 0 0 2px ${card.borderColor}60`,
-            }}
-          />
+            style={{ boxShadow: isShiny ? `0 0 0 2px ${card.borderColor}, 0 0 40px 8px ${rarityGlowColors[card.rarity]}` : `0 0 0 2px ${card.borderColor}60` }} />
         )}
       </div>
     </div>
