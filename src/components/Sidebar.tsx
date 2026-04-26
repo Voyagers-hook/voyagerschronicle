@@ -29,8 +29,8 @@ const navItems: NavItem[] = [
 ];
 
 const adminItems: NavItem[] = [
-  { label: 'Admin Panel', icon: 'Cog6ToothIcon',  href: '/admin' },
-  { label: 'Analytics',   icon: 'ChartBarIcon',   href: '/admin-analytics' },
+  { label: 'Admin Panel', icon: 'Cog6ToothIcon', href: '/admin' },
+  { label: 'Analytics',   icon: 'ChartBarIcon',  href: '/admin-analytics' },
 ];
 
 interface Profile {
@@ -46,7 +46,7 @@ export default function Sidebar({ currentPath }: { currentPath?: string }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showAccount, setShowAccount] = useState(false);
 
-  // Account panel state
+  // Account panel fields
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -58,7 +58,7 @@ export default function Sidebar({ currentPath }: { currentPath?: string }) {
 
   const { user, signOut } = useAuth();
   const router = useRouter();
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const badgeRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -70,10 +70,10 @@ export default function Sidebar({ currentPath }: { currentPath?: string }) {
       .then(({ count }) => setPendingTrades(count || 0));
   }, [user]);
 
-  // Close dropdown when clicking outside
+  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (badgeRef.current && !badgeRef.current.contains(e.target as Node)) {
         setShowAccount(false);
       }
     };
@@ -148,24 +148,20 @@ export default function Sidebar({ currentPath }: { currentPath?: string }) {
     item.href === '/trading' ? { ...item, badge: pendingTrades } : item
   );
 
-  const Avatar = ({ size }: { size: number }) => (
+  // Avatar circle — photo if set, initials if not
+  const AvatarCircle = ({ size }: { size: number }) => (
     profile?.avatar_url ? (
       <img
         src={profile.avatar_url}
         alt={displayName}
-        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.3)' }}
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
       />
     ) : (
-      <div
-        style={{
-          width: size, height: size, borderRadius: '50%',
-          backgroundColor: '#ff751f',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: size * 0.35, fontWeight: 700, color: 'white',
-          border: '2px solid rgba(255,255,255,0.3)',
-          flexShrink: 0,
-        }}
-      >
+      <div style={{
+        width: size, height: size, borderRadius: '50%', backgroundColor: '#ff751f',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: size * 0.36, fontWeight: 700, color: 'white', flexShrink: 0,
+      }}>
         {initials}
       </div>
     )
@@ -184,120 +180,17 @@ export default function Sidebar({ currentPath }: { currentPath?: string }) {
         <span className="ml-auto text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center" style={{ backgroundColor: '#ff751f' }}>{item.badge}</span>
       ) : null}
       {compact && (
-        <span className="absolute left-full ml-3 px-2 py-1 bg-primary-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-sans font-medium">
+        <span className="absolute left-full ml-3 px-2 py-1 bg-primary-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
           {item.label}{item.badge && item.badge > 0 ? ` (${item.badge})` : ''}
         </span>
       )}
     </Link>
   );
 
-  const AccountPanel = () => (
-    <div
-      className="absolute bottom-full left-0 mb-3 w-72 rounded-2xl overflow-hidden z-50"
-      style={{
-        background: 'white',
-        border: '1px solid rgba(0,0,0,0.1)',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
-      }}
-    >
-      {/* Header */}
-      <div className="p-4 flex items-center gap-3" style={{ background: 'linear-gradient(135deg, #1A3D28, #2D6A4F)' }}>
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="relative flex-shrink-0 group"
-          title="Change profile picture"
-        >
-          <Avatar size={48} />
-          <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <Icon name="CameraIcon" size={16} className="text-white" />
-          </div>
-          {uploadingAvatar && (
-            <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center">
-              <Icon name="ArrowPathIcon" size={14} className="text-white animate-spin" />
-            </div>
-          )}
-        </button>
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarUpload} />
-        <div className="min-w-0">
-          <p className="text-white font-sans font-semibold text-sm truncate">{displayName}</p>
-          <p className="text-white/60 text-xs font-sans truncate">{user?.email}</p>
-          <p className="text-white/50 text-xs font-sans">{tier}</p>
-        </div>
-      </div>
-
-      <div className="p-4 space-y-4">
-        {/* Feedback messages */}
-        {accountMsg && <p className="text-xs text-emerald-600 font-semibold bg-emerald-50 px-3 py-2 rounded-xl">{accountMsg}</p>}
-        {accountErr && <p className="text-xs text-red-600 font-semibold bg-red-50 px-3 py-2 rounded-xl">{accountErr}</p>}
-
-        {/* Username */}
-        <div>
-          <label className="block text-xs font-sans font-bold text-earth-500 uppercase tracking-widest mb-1.5">Username</label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newUsername}
-              onChange={e => setNewUsername(e.target.value)}
-              className="flex-1 border border-adventure-border rounded-xl px-3 py-2 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
-              placeholder="Your username"
-            />
-            <button
-              onClick={handleSaveUsername}
-              disabled={savingUsername}
-              className="px-3 py-2 rounded-xl text-white text-xs font-sans font-bold disabled:opacity-50"
-              style={{ backgroundColor: '#ff751f' }}
-            >
-              {savingUsername ? '...' : 'Save'}
-            </button>
-          </div>
-        </div>
-
-        {/* Password */}
-        <div>
-          <label className="block text-xs font-sans font-bold text-earth-500 uppercase tracking-widest mb-1.5">
-            Set Password <span className="normal-case font-normal text-earth-400">(optional)</span>
-          </label>
-          <div className="space-y-2">
-            <input
-              type="password"
-              value={newPassword}
-              onChange={e => { setNewPassword(e.target.value); setAccountErr(''); }}
-              className="w-full border border-adventure-border rounded-xl px-3 py-2 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
-              placeholder="New password (min 8 chars)"
-            />
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={e => { setConfirmPassword(e.target.value); setAccountErr(''); }}
-              className="w-full border border-adventure-border rounded-xl px-3 py-2 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
-              placeholder="Confirm password"
-            />
-            <button
-              onClick={handleSavePassword}
-              disabled={savingPassword || !newPassword}
-              className="w-full py-2 rounded-xl text-white text-xs font-sans font-bold disabled:opacity-40"
-              style={{ backgroundColor: '#2D6A4F' }}
-            >
-              {savingPassword ? 'Saving…' : 'Set Password'}
-            </button>
-          </div>
-        </div>
-
-        {/* Sign out */}
-        <button
-          onClick={handleSignOut}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-red-600 bg-red-50 hover:bg-red-100 text-sm font-sans font-semibold transition-colors"
-        >
-          <Icon name="ArrowLeftOnRectangleIcon" size={16} />
-          Sign Out
-        </button>
-      </div>
-    </div>
-  );
-
   const SidebarContent = ({ compact }: { compact: boolean }) => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
+
+      {/* ── Logo ── */}
       <div className={`flex items-center justify-center px-4 py-5 border-b border-primary-100 ${compact ? 'px-2 py-3' : ''}`}>
         <Image
           src="/assets/images/little_voyagers_logo-1776778067350.png"
@@ -308,59 +201,152 @@ export default function Sidebar({ currentPath }: { currentPath?: string }) {
         />
       </div>
 
-      {/* Main nav */}
-      <nav className="flex-1 px-2 pt-4 space-y-0.5 overflow-y-auto">
+      {/* ── Member badge — clickable, opens account dropdown ── */}
+      {!compact && (
+        <div className="mx-3 mt-4 mb-2 relative" ref={badgeRef}>
+          <button
+            onClick={() => { setShowAccount(v => !v); setAccountErr(''); setAccountMsg(''); }}
+            className="w-full rounded-2xl p-3 text-left transition-all hover:opacity-90 active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1A3D28 100%)' }}
+          >
+            <div className="flex items-center gap-3">
+              {/* Larger avatar */}
+              <div className="relative flex-shrink-0">
+                <AvatarCircle size={44} />
+                {/* Camera hint on hover */}
+                <div className="absolute inset-0 rounded-full bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
+                  <Icon name="CameraIcon" size={14} className="text-white" />
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-sm font-sans font-semibold truncate">{displayName}</p>
+                <p className="text-primary-200 text-xs font-sans">{tier}</p>
+              </div>
+              <Icon
+                name="ChevronDownIcon"
+                size={14}
+                className={`text-primary-300 transition-transform flex-shrink-0 ${showAccount ? 'rotate-180' : ''}`}
+              />
+            </div>
+          </button>
+
+          {/* ── Account dropdown — opens below the badge ── */}
+          {showAccount && (
+            <div
+              className="absolute top-full left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50"
+              style={{
+                background: 'white',
+                border: '1px solid rgba(0,0,0,0.08)',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+              }}
+            >
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarUpload} />
+
+              {/* Change photo row */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary-50 transition-colors border-b border-adventure-border text-left"
+              >
+                <div className="w-8 h-8 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0">
+                  {uploadingAvatar
+                    ? <Icon name="ArrowPathIcon" size={16} className="text-primary-500 animate-spin" />
+                    : <Icon name="CameraIcon" size={16} className="text-primary-500" />
+                  }
+                </div>
+                <span className="text-sm font-sans font-semibold text-primary-700">
+                  {uploadingAvatar ? 'Uploading…' : 'Change Profile Picture'}
+                </span>
+              </button>
+
+              <div className="px-4 py-3 space-y-3">
+                {/* Feedback */}
+                {accountMsg && <p className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-xl">{accountMsg}</p>}
+                {accountErr && <p className="text-xs font-semibold text-red-600 bg-red-50 px-3 py-2 rounded-xl">{accountErr}</p>}
+
+                {/* Username */}
+                <div>
+                  <label className="block text-xs font-sans font-bold text-earth-500 uppercase tracking-widest mb-1.5">Username</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newUsername}
+                      onChange={e => setNewUsername(e.target.value)}
+                      className="flex-1 border border-adventure-border rounded-xl px-3 py-2 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white min-w-0"
+                    />
+                    <button
+                      onClick={handleSaveUsername}
+                      disabled={savingUsername}
+                      className="px-3 py-2 rounded-xl text-white text-xs font-bold disabled:opacity-50 flex-shrink-0"
+                      style={{ backgroundColor: '#ff751f' }}
+                    >
+                      {savingUsername ? '…' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label className="block text-xs font-sans font-bold text-earth-500 uppercase tracking-widest mb-1.5">
+                    Set Password <span className="normal-case font-normal">(optional)</span>
+                  </label>
+                  <div className="space-y-2">
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={e => { setNewPassword(e.target.value); setAccountErr(''); }}
+                      placeholder="New password (min 8 chars)"
+                      className="w-full border border-adventure-border rounded-xl px-3 py-2 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
+                    />
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={e => { setConfirmPassword(e.target.value); setAccountErr(''); }}
+                      placeholder="Confirm password"
+                      className="w-full border border-adventure-border rounded-xl px-3 py-2 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
+                    />
+                    <button
+                      onClick={handleSavePassword}
+                      disabled={savingPassword || !newPassword}
+                      className="w-full py-2 rounded-xl text-white text-xs font-bold disabled:opacity-40 transition-opacity"
+                      style={{ backgroundColor: '#2D6A4F' }}
+                    >
+                      {savingPassword ? 'Saving…' : 'Set Password'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sign out */}
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-red-600 bg-red-50 hover:bg-red-100 text-sm font-sans font-semibold transition-colors"
+                >
+                  <Icon name="ArrowLeftOnRectangleIcon" size={15} />
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Main nav ── */}
+      <nav className="flex-1 px-2 pt-3 space-y-0.5 overflow-y-auto">
         {!compact && (
           <p className="text-xs font-sans font-semibold text-primary-400 uppercase tracking-widest mb-2 px-3">Explore</p>
         )}
         {navWithBadges.map(item => <NavLink key={item.href} item={item} compact={compact} />)}
-
-        {isAdmin && (
-          <>
-            {!compact && <p className="text-xs font-sans font-semibold text-primary-400 uppercase tracking-widest mt-4 mb-2 px-3">Admin</p>}
-            {adminItems.map(item => <NavLink key={item.href} item={item} compact={compact} />)}
-          </>
-        )}
       </nav>
 
-      {/* Profile button at bottom */}
-      <div className="px-3 pb-4 pt-3 border-t border-primary-100" ref={dropdownRef}>
-        {showAccount && !compact && <AccountPanel />}
-
-        <button
-          onClick={() => { setShowAccount(v => !v); setAccountErr(''); setAccountMsg(''); }}
-          className={`w-full flex items-center gap-3 p-2.5 rounded-2xl transition-all hover:bg-primary-50 ${showAccount ? 'bg-primary-50 ring-2 ring-orange-300' : ''} ${compact ? 'justify-center' : ''}`}
-        >
-          <Avatar size={compact ? 32 : 40} />
+      {/* ── Admin nav (admins only) ── */}
+      {isAdmin && (
+        <div className="px-2 pb-2 border-t border-primary-100 pt-3 space-y-0.5">
           {!compact && (
-            <div className="flex-1 min-w-0 text-left">
-              <p className="font-sans font-semibold text-primary-800 text-sm truncate">{displayName}</p>
-              <p className="text-xs font-sans text-earth-400 truncate">{tier}</p>
-            </div>
+            <p className="text-xs font-sans font-semibold text-primary-400 uppercase tracking-widest mb-2 px-3">Admin</p>
           )}
-          {!compact && (
-            <Icon name="ChevronUpIcon" size={14} className={`text-earth-400 transition-transform ${showAccount ? 'rotate-180' : ''}`} />
-          )}
-        </button>
-      </div>
-    </div>
-  );
-
-  // Collapsed sidebar — no account panel, just nav icon + avatar
-  const CollapsedSidebar = () => (
-    <div className="flex flex-col h-full items-center">
-      <div className="flex items-center justify-center px-2 py-3 border-b border-primary-100 w-full">
-        <Image src="/assets/images/little_voyagers_logo-1776778067350.png" alt="Logo" width={40} height={40} className="object-contain" />
-      </div>
-      <nav className="flex-1 px-1 pt-4 space-y-0.5 overflow-y-auto w-full">
-        {navWithBadges.map(item => <NavLink key={item.href} item={item} compact={true} />)}
-        {isAdmin && adminItems.map(item => <NavLink key={item.href} item={item} compact={true} />)}
-      </nav>
-      <div className="pb-4 pt-3 border-t border-primary-100 w-full flex flex-col items-center gap-2 px-1">
-        <Link href="/settings" className="group relative p-2 rounded-xl hover:bg-primary-50 transition-colors flex items-center justify-center w-full">
-          <Avatar size={32} />
-        </Link>
-      </div>
+          {adminItems.map(item => <NavLink key={item.href} item={item} compact={compact} />)}
+        </div>
+      )}
     </div>
   );
 
@@ -391,9 +377,7 @@ export default function Sidebar({ currentPath }: { currentPath?: string }) {
                 <Icon name="XMarkIcon" size={20} />
               </button>
             </div>
-            <div className="h-[calc(100%-52px)]">
-              <SidebarContent compact={false} />
-            </div>
+            <SidebarContent compact={false} />
           </aside>
         </div>
       )}
