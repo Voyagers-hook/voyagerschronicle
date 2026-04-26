@@ -41,17 +41,21 @@ function HintModal({ card, onClose }: { card: FishingCard; onClose: () => void }
         className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        {/* Card back preview at top */}
-        <div className={`bg-gradient-to-br ${back.bg} p-8 flex flex-col items-center gap-3`}>
-          <div className="w-16 h-16 rounded-2xl bg-white/10 border-2 border-white/20 flex items-center justify-center">
-            <Icon name="LockClosedIcon" size={30} className="text-white/60" />
+        {/* Card back image at top of modal */}
+        <div className="relative h-40 overflow-hidden">
+          <img
+            src="https://raw.githubusercontent.com/Voyagers-hook/images/main/chronicle%20card%20back.png"
+            alt="Card back"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center gap-2">
+            <span className={`text-white text-xs font-bold px-3 py-1 rounded-full ${back.badge}`}>
+              {card.rarity}
+            </span>
+            <p className="text-white/60 text-xs font-sans font-semibold tracking-widest">
+              Card #{String(card.cardNumber).padStart(3, '0')}
+            </p>
           </div>
-          <p className="text-white/50 text-xs font-sans font-semibold tracking-widest uppercase">
-            Card #{String(card.cardNumber).padStart(3, '0')}
-          </p>
-          <span className={`text-white text-xs font-bold px-3 py-1 rounded-full ${back.badge}`}>
-            {card.rarity}
-          </span>
         </div>
 
         {/* Hint content */}
@@ -105,7 +109,7 @@ export default function CardSlot({ card, onClick }: CardSlotProps) {
   const isShiny = card.rarity === 'Specimen' || card.rarity === 'Legendary';
   const back = rarityCardBack[card.rarity];
 
-  // ── Uncollected — show card back silhouette, hint on click ────────────────
+  // ── Uncollected — show card back image, hint on click ────────────────
   if (!card.collected) {
     return (
       <>
@@ -122,43 +126,28 @@ export default function CardSlot({ card, onClick }: CardSlotProps) {
             style={{
               transform: hovered ? 'rotateY(6deg) rotateX(-4deg) scale(1.04)' : 'rotateY(0) rotateX(0) scale(1)',
               transformStyle: 'preserve-3d',
+              boxShadow: hovered
+                ? `0 0 16px 4px rgba(255,117,31,0.3), 0 8px 24px rgba(0,0,0,0.3)`
+                : '0 2px 8px rgba(0,0,0,0.2)',
             }}
           >
-            {/* Card back face */}
-            <div
-              className={`w-full h-full rounded-2xl overflow-hidden bg-gradient-to-br ${back.bg} flex flex-col items-center justify-between p-3`}
-              style={{
-                border: `2px solid ${back.border}40`,
-                boxShadow: hovered
-                  ? `0 0 16px 4px ${back.border}40, 0 8px 24px rgba(0,0,0,0.3)`
-                  : '0 2px 8px rgba(0,0,0,0.2)',
-              }}
-            >
-              {/* Top — card number */}
-              <span className="text-white/30 text-[10px] font-sans font-bold tracking-widest self-start">
-                #{String(card.cardNumber).padStart(3, '0')}
-              </span>
+            {/* Card back image */}
+            <img
+              src="https://raw.githubusercontent.com/Voyagers-hook/images/main/chronicle%20card%20back.png"
+              alt="Undiscovered card"
+              className="w-full h-full object-cover rounded-2xl"
+            />
 
-              {/* Centre — lock icon */}
-              <div className="flex flex-col items-center gap-2">
-                <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }}
-                >
-                  <Icon name="LockClosedIcon" size={22} className="text-white/40" />
-                </div>
-                {hovered && (
-                  <span className="text-white/60 text-[10px] font-sans font-semibold tracking-wide animate-pulse">
-                    Tap for hint
-                  </span>
-                )}
+            {/* Hover overlay with hint prompt */}
+            {hovered && (
+              <div className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center gap-2"
+                style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}>
+                <Icon name="LightBulbIcon" size={24} className="text-amber-400" />
+                <span className="text-white text-xs font-sans font-semibold tracking-wide">
+                  Tap for hint
+                </span>
               </div>
-
-              {/* Bottom — rarity badge */}
-              <span className={`text-white text-[10px] font-sans font-bold px-2 py-0.5 rounded-full ${back.badge} opacity-80`}>
-                {card.rarity}
-              </span>
-            </div>
+            )}
           </div>
         </div>
 
