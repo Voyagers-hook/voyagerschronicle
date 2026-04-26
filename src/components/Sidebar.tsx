@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -28,95 +28,271 @@ const navItems: NavItem[] = [
   { label: 'Catch Log',       icon: 'ClipboardDocumentListIcon', href: '/catch-log' },
 ];
 
-const memberBottomItems: NavItem[] = [
-  { label: 'Settings', icon: 'UserCircleIcon', href: '/settings' },
+const adminItems: NavItem[] = [
+  { label: 'Admin Panel', icon: 'Cog6ToothIcon',  href: '/admin' },
+  { label: 'Analytics',   icon: 'ChartBarIcon',   href: '/admin-analytics' },
 ];
 
-const adminBottomItems: NavItem[] = [
-  { label: 'Settings',         icon: 'UserCircleIcon', href: '/settings' },
-  { label: 'Admin Panel',      icon: 'Cog6ToothIcon',  href: '/admin' },
-  { label: 'Analytics',        icon: 'ChartBarIcon',   href: '/admin-analytics' },
-];
-
-interface SidebarProps {
-  currentPath?: string;
+interface Profile {
+  username: string | null;
+  membership_tier: string | null;
+  avatar_url: string | null;
+  role: string | null;
 }
 
-export default function Sidebar({ currentPath }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
+export default function Sidebar({ currentPath }: { currentPath?: string }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pendingTrades, setPendingTrades] = useState(0);
-  const [profile, setProfile] = useState<{ username: string | null; membership_tier: string | null; role: string | null } | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [showAccount, setShowAccount] = useState(false);
+
+  // Account panel state
+  const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [accountMsg, setAccountMsg] = useState('');
+  const [accountErr, setAccountErr] = useState('');
+  const [savingUsername, setSavingUsername] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
-    supabase
-      .from('user_profiles')
-      .select('username, membership_tier, role')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => { if (data) setProfile(data); });
-    supabase
-      .from('trades')
-      .select('id', { count: 'exact', head: true })
-      .eq('to_user_id', user.id)
-      .eq('trade_status', 'pending')
+    supabase.from('user_profiles').select('username, membership_tier, avatar_url, role').eq('id', user.id).single()
+      .then(({ data }) => { if (data) { setProfile(data); setNewUsername(data.username || ''); } });
+    supabase.from('trades').select('id', { count: 'exact', head: true }).eq('to_user_id', user.id).eq('trade_status', 'pending')
       .then(({ count }) => setPendingTrades(count || 0));
   }, [user]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowAccount(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const handleSignOut = async () => {
     try { await signOut(); } catch {}
     router.push('/login-screen');
   };
 
-  const isAdmin = profile?.role === 'admin';
-  const bottomItems = isAdmin ? adminBottomItems : memberBottomItems;
-  const isActive = (href: string) => currentPath === href;
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingAvatar(true);
+    setAccountErr('');
+    try {
+      const supabase = createClient();
+      const ext = file.name.split('.').pop();
+      const path = `${user.id}/avatar.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+      const publicUrl = `${data.publicUrl}?t=${Date.now()}`;
+      await supabase.from('user_profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
+      setProfile(p => p ? { ...p, avatar_url: publicUrl } : p);
+      setAccountMsg('Profile picture updated!');
+    } catch (err: any) {
+      setAccountErr('Upload failed: ' + err.message);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
+  const handleSaveUsername = async () => {
+    if (!newUsername.trim() || !user) return;
+    setSavingUsername(true);
+    setAccountErr('');
+    const supabase = createClient();
+    const { error } = await supabase.from('user_profiles').update({ username: newUsername.trim() }).eq('id', user.id);
+    setSavingUsername(false);
+    if (error) { setAccountErr('Could not update username.'); return; }
+    setProfile(p => p ? { ...p, username: newUsername.trim() } : p);
+    setAccountMsg('Username updated!');
+    setTimeout(() => setAccountMsg(''), 3000);
+  };
+
+  const handleSavePassword = async () => {
+    if (!newPassword || !user) return;
+    if (newPassword.length < 8) { setAccountErr('Password must be at least 8 characters.'); return; }
+    if (newPassword !== confirmPassword) { setAccountErr('Passwords do not match.'); return; }
+    setSavingPassword(true);
+    setAccountErr('');
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setSavingPassword(false);
+    if (error) { setAccountErr(error.message); return; }
+    setNewPassword('');
+    setConfirmPassword('');
+    setAccountMsg('Password set successfully!');
+    setTimeout(() => setAccountMsg(''), 3000);
+  };
+
+  const isActive = (href: string) => currentPath === href;
+  const isAdmin = profile?.role === 'admin';
   const displayName = profile?.username || user?.email?.split('@')[0] || 'Captain';
   const tier = profile?.membership_tier || 'Explorer';
-  const initials = displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  const initials = displayName.slice(0, 2).toUpperCase();
 
   const navWithBadges = navItems.map(item =>
     item.href === '/trading' ? { ...item, badge: pendingTrades } : item
   );
 
+  const Avatar = ({ size }: { size: number }) => (
+    profile?.avatar_url ? (
+      <img
+        src={profile.avatar_url}
+        alt={displayName}
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.3)' }}
+      />
+    ) : (
+      <div
+        style={{
+          width: size, height: size, borderRadius: '50%',
+          backgroundColor: '#ff751f',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: size * 0.35, fontWeight: 700, color: 'white',
+          border: '2px solid rgba(255,255,255,0.3)',
+          flexShrink: 0,
+        }}
+      >
+        {initials}
+      </div>
+    )
+  );
+
   const NavLink = ({ item, compact }: { item: NavItem; compact: boolean }) => (
     <Link
       href={item.href}
-      className={`
-        group relative flex items-center gap-3 px-3 py-2.5 rounded-xl
-        transition-all duration-150 font-sans font-medium text-sm
-        ${isActive(item.href)
-          ? 'bg-orange-500 text-white shadow-sm'
-          : 'text-primary-700 hover:bg-primary-50 hover:text-primary-800'
-        }
-        ${compact ? 'justify-center px-2' : ''}
-      `}
+      className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 font-sans font-medium text-sm ${isActive(item.href) ? 'text-white shadow-sm' : 'text-primary-700 hover:bg-primary-50 hover:text-primary-800'} ${compact ? 'justify-center px-2' : ''}`}
       style={isActive(item.href) ? { backgroundColor: '#ff751f' } : {}}
       onClick={() => setMobileOpen(false)}
     >
-      <Icon
-        name={item.icon as Parameters<typeof Icon>[0]['name']}
-        size={20}
-        className={isActive(item.href) ? 'text-white' : 'text-primary-500 group-hover:text-primary-700'}
-      />
+      <Icon name={item.icon as any} size={20} className={isActive(item.href) ? 'text-white' : 'text-primary-500 group-hover:text-primary-700'} />
       {!compact && <span className="truncate">{item.label}</span>}
       {!compact && item.badge && item.badge > 0 ? (
-        <span className="ml-auto text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center" style={{ backgroundColor: '#ff751f' }}>
-          {item.badge}
-        </span>
+        <span className="ml-auto text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center" style={{ backgroundColor: '#ff751f' }}>{item.badge}</span>
       ) : null}
       {compact && (
-        <span className="absolute left-full ml-3 px-2 py-1 bg-primary-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none z-50 font-sans font-medium">
-          {item.label}
-          {item.badge && item.badge > 0 ? ` (${item.badge})` : ''}
+        <span className="absolute left-full ml-3 px-2 py-1 bg-primary-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-sans font-medium">
+          {item.label}{item.badge && item.badge > 0 ? ` (${item.badge})` : ''}
         </span>
       )}
     </Link>
+  );
+
+  const AccountPanel = () => (
+    <div
+      className="absolute bottom-full left-0 mb-3 w-72 rounded-2xl overflow-hidden z-50"
+      style={{
+        background: 'white',
+        border: '1px solid rgba(0,0,0,0.1)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
+      }}
+    >
+      {/* Header */}
+      <div className="p-4 flex items-center gap-3" style={{ background: 'linear-gradient(135deg, #1A3D28, #2D6A4F)' }}>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="relative flex-shrink-0 group"
+          title="Change profile picture"
+        >
+          <Avatar size={48} />
+          <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <Icon name="CameraIcon" size={16} className="text-white" />
+          </div>
+          {uploadingAvatar && (
+            <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center">
+              <Icon name="ArrowPathIcon" size={14} className="text-white animate-spin" />
+            </div>
+          )}
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarUpload} />
+        <div className="min-w-0">
+          <p className="text-white font-sans font-semibold text-sm truncate">{displayName}</p>
+          <p className="text-white/60 text-xs font-sans truncate">{user?.email}</p>
+          <p className="text-white/50 text-xs font-sans">{tier}</p>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-4">
+        {/* Feedback messages */}
+        {accountMsg && <p className="text-xs text-emerald-600 font-semibold bg-emerald-50 px-3 py-2 rounded-xl">{accountMsg}</p>}
+        {accountErr && <p className="text-xs text-red-600 font-semibold bg-red-50 px-3 py-2 rounded-xl">{accountErr}</p>}
+
+        {/* Username */}
+        <div>
+          <label className="block text-xs font-sans font-bold text-earth-500 uppercase tracking-widest mb-1.5">Username</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newUsername}
+              onChange={e => setNewUsername(e.target.value)}
+              className="flex-1 border border-adventure-border rounded-xl px-3 py-2 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
+              placeholder="Your username"
+            />
+            <button
+              onClick={handleSaveUsername}
+              disabled={savingUsername}
+              className="px-3 py-2 rounded-xl text-white text-xs font-sans font-bold disabled:opacity-50"
+              style={{ backgroundColor: '#ff751f' }}
+            >
+              {savingUsername ? '...' : 'Save'}
+            </button>
+          </div>
+        </div>
+
+        {/* Password */}
+        <div>
+          <label className="block text-xs font-sans font-bold text-earth-500 uppercase tracking-widest mb-1.5">
+            Set Password <span className="normal-case font-normal text-earth-400">(optional)</span>
+          </label>
+          <div className="space-y-2">
+            <input
+              type="password"
+              value={newPassword}
+              onChange={e => { setNewPassword(e.target.value); setAccountErr(''); }}
+              className="w-full border border-adventure-border rounded-xl px-3 py-2 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
+              placeholder="New password (min 8 chars)"
+            />
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={e => { setConfirmPassword(e.target.value); setAccountErr(''); }}
+              className="w-full border border-adventure-border rounded-xl px-3 py-2 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
+              placeholder="Confirm password"
+            />
+            <button
+              onClick={handleSavePassword}
+              disabled={savingPassword || !newPassword}
+              className="w-full py-2 rounded-xl text-white text-xs font-sans font-bold disabled:opacity-40"
+              style={{ backgroundColor: '#2D6A4F' }}
+            >
+              {savingPassword ? 'Saving…' : 'Set Password'}
+            </button>
+          </div>
+        </div>
+
+        {/* Sign out */}
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-red-600 bg-red-50 hover:bg-red-100 text-sm font-sans font-semibold transition-colors"
+        >
+          <Icon name="ArrowLeftOnRectangleIcon" size={16} />
+          Sign Out
+        </button>
+      </div>
+    </div>
   );
 
   const SidebarContent = ({ compact }: { compact: boolean }) => (
@@ -125,67 +301,65 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       <div className={`flex items-center justify-center px-4 py-5 border-b border-primary-100 ${compact ? 'px-2 py-3' : ''}`}>
         <Image
           src="/assets/images/little_voyagers_logo-1776778067350.png"
-          alt="Little Voyagers Project Somerset logo"
+          alt="Little Voyagers Project Somerset"
           width={compact ? 40 : 80}
           height={compact ? 40 : 80}
           className="object-contain"
         />
       </div>
 
-      {/* Member badge */}
-      {!compact && (
-        <div className="mx-3 mt-4 mb-2 rounded-xl p-3" style={{ background: 'linear-gradient(135deg, #2D6A4F 0%, #1A3D28 100%)' }}>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white font-display flex-shrink-0" style={{ backgroundColor: '#ff751f' }}>
-              {initials}
-            </div>
-            <div className="min-w-0">
-              <p className="text-white text-xs font-sans font-semibold truncate">{displayName}</p>
-              <p className="text-primary-200 text-xs font-sans">{tier}</p>
-            </div>
-            <Link href="/settings" className="ml-auto p-1 rounded-lg hover:bg-white/10 transition-colors" title="Settings">
-              <Icon name="UserCircleIcon" size={16} className="text-primary-200" />
-            </Link>
-          </div>
-        </div>
-      )}
-
       {/* Main nav */}
-      <nav className="flex-1 px-2 pt-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-2 pt-4 space-y-0.5 overflow-y-auto">
         {!compact && (
-          <p className="text-xs font-sans font-semibold text-primary-400 uppercase tracking-widest mb-2 px-3">
-            Explore
-          </p>
+          <p className="text-xs font-sans font-semibold text-primary-400 uppercase tracking-widest mb-2 px-3">Explore</p>
         )}
-        {navWithBadges.map((item) => (
-          <NavLink key={`nav-${item.href}`} item={item} compact={compact} />
-        ))}
+        {navWithBadges.map(item => <NavLink key={item.href} item={item} compact={compact} />)}
+
+        {isAdmin && (
+          <>
+            {!compact && <p className="text-xs font-sans font-semibold text-primary-400 uppercase tracking-widest mt-4 mb-2 px-3">Admin</p>}
+            {adminItems.map(item => <NavLink key={item.href} item={item} compact={compact} />)}
+          </>
+        )}
       </nav>
 
-      {/* Bottom nav */}
-      <div className="px-2 pb-4 border-t border-primary-100 pt-3 space-y-0.5">
-        {!compact && (
-          <p className="text-xs font-sans font-semibold text-primary-400 uppercase tracking-widest mb-2 px-3">
-            {isAdmin ? 'Admin' : 'Account'}
-          </p>
-        )}
-        {bottomItems.map((item) => (
-          <NavLink key={`bottom-${item.href}`} item={item} compact={compact} />
-        ))}
+      {/* Profile button at bottom */}
+      <div className="px-3 pb-4 pt-3 border-t border-primary-100" ref={dropdownRef}>
+        {showAccount && !compact && <AccountPanel />}
+
         <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-primary-500 hover:bg-primary-50 transition-all duration-150 text-sm font-sans font-medium"
+          onClick={() => { setShowAccount(v => !v); setAccountErr(''); setAccountMsg(''); }}
+          className={`w-full flex items-center gap-3 p-2.5 rounded-2xl transition-all hover:bg-primary-50 ${showAccount ? 'bg-primary-50 ring-2 ring-orange-300' : ''} ${compact ? 'justify-center' : ''}`}
         >
-          <Icon name={collapsed ? 'ChevronRightIcon' : 'ChevronLeftIcon'} size={18} />
-          {!compact && <span>Collapse</span>}
+          <Avatar size={compact ? 32 : 40} />
+          {!compact && (
+            <div className="flex-1 min-w-0 text-left">
+              <p className="font-sans font-semibold text-primary-800 text-sm truncate">{displayName}</p>
+              <p className="text-xs font-sans text-earth-400 truncate">{tier}</p>
+            </div>
+          )}
+          {!compact && (
+            <Icon name="ChevronUpIcon" size={14} className={`text-earth-400 transition-transform ${showAccount ? 'rotate-180' : ''}`} />
+          )}
         </button>
-        <button
-          onClick={handleSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-earth-500 hover:bg-red-50 hover:text-red-600 transition-all duration-150 text-sm font-sans font-medium"
-        >
-          <Icon name="ArrowLeftOnRectangleIcon" size={18} />
-          {!compact && <span>Sign Out</span>}
-        </button>
+      </div>
+    </div>
+  );
+
+  // Collapsed sidebar — no account panel, just nav icon + avatar
+  const CollapsedSidebar = () => (
+    <div className="flex flex-col h-full items-center">
+      <div className="flex items-center justify-center px-2 py-3 border-b border-primary-100 w-full">
+        <Image src="/assets/images/little_voyagers_logo-1776778067350.png" alt="Logo" width={40} height={40} className="object-contain" />
+      </div>
+      <nav className="flex-1 px-1 pt-4 space-y-0.5 overflow-y-auto w-full">
+        {navWithBadges.map(item => <NavLink key={item.href} item={item} compact={true} />)}
+        {isAdmin && adminItems.map(item => <NavLink key={item.href} item={item} compact={true} />)}
+      </nav>
+      <div className="pb-4 pt-3 border-t border-primary-100 w-full flex flex-col items-center gap-2 px-1">
+        <Link href="/settings" className="group relative p-2 rounded-xl hover:bg-primary-50 transition-colors flex items-center justify-center w-full">
+          <Avatar size={32} />
+        </Link>
       </div>
     </div>
   );
@@ -193,11 +367,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside
-        className={`hidden lg:flex flex-col bg-white border-r border-adventure-border transition-all duration-300 ease-in-out flex-shrink-0 ${collapsed ? 'w-16' : 'w-64'}`}
-        style={{ minHeight: '100vh' }}
-      >
-        <SidebarContent compact={collapsed} />
+      <aside className="hidden lg:flex flex-col bg-white border-r border-adventure-border w-64 flex-shrink-0" style={{ minHeight: '100vh' }}>
+        <SidebarContent compact={false} />
       </aside>
 
       {/* Mobile hamburger */}
@@ -214,13 +385,15 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       {/* Mobile overlay */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)}>
-          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white shadow-panel" onClick={(e) => e.stopPropagation()}>
+          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white shadow-panel" onClick={e => e.stopPropagation()}>
             <div className="flex justify-end p-3">
-              <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg hover:bg-primary-50 text-primary-500" aria-label="Close navigation">
+              <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg hover:bg-primary-50 text-primary-500">
                 <Icon name="XMarkIcon" size={20} />
               </button>
             </div>
-            <SidebarContent compact={false} />
+            <div className="h-[calc(100%-52px)]">
+              <SidebarContent compact={false} />
+            </div>
           </aside>
         </div>
       )}
