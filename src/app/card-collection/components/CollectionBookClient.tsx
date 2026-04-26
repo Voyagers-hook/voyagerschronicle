@@ -37,7 +37,7 @@ export default function CollectionBookClient() {
       if (user) {
         const { data: userCards } = await supabase
           .from('user_cards')
-          .select('card_id, collected_at')
+        .select('card_id, collected_at, cards(card_number, hint, habitat)')
           .eq('user_id', user.id)
           .eq('opened', true);
 
