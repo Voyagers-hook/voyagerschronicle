@@ -8,10 +8,15 @@ export interface FishingCard {
   image?: string;
   power: number;
   stealth: number;
-  stamina: number;
+  stamina: number;   // mapped from DB energy
+  energy?: number;   // alias
   beauty: number;
+  hp?: number;
+  cardLevel?: number;
   habitat: string;
   description: string;
+  hint?: string;
+  fact?: string;
   collected: boolean;
   collectedDate?: string;
   cardNumber: number;
@@ -19,15 +24,15 @@ export interface FishingCard {
   foil?: boolean;
   gradient: string;
   borderColor: string;
-  hint?: string;
-habitat?: string;
+  dropRate?: number;
+  pointsValue?: number;
 }
 
 export const rarityConfig: Record<CardRarity, { color: string; bg: string; glow: string; label: string; badge: string }> = {
-  Widespread: { color: 'text-earth-600',   bg: 'bg-earth-100',   glow: 'shadow-earth-200',    label: 'Widespread',  badge: 'bg-earth-200 text-earth-700' },
-  Elusive:    { color: 'text-green-700',   bg: 'bg-green-50',    glow: 'shadow-green-200',    label: 'Elusive',     badge: 'bg-green-100 text-green-800' },
-  Specimen:   { color: 'text-blue-700',    bg: 'bg-blue-50',     glow: 'shadow-blue-300',     label: 'Specimen',    badge: 'bg-blue-100 text-blue-800' },
-  Legendary:  { color: 'text-amber-700',   bg: 'bg-amber-50',    glow: 'shadow-amber-400',    label: 'Legendary',   badge: 'bg-amber-100 text-amber-800' },
+  Widespread: { color: 'text-earth-600',  bg: 'bg-earth-100',  glow: 'shadow-earth-200',  label: 'Widespread', badge: 'bg-earth-200 text-earth-700'   },
+  Elusive:    { color: 'text-green-700',  bg: 'bg-green-50',   glow: 'shadow-green-200',  label: 'Elusive',    badge: 'bg-green-100 text-green-800'   },
+  Specimen:   { color: 'text-blue-700',   bg: 'bg-blue-50',    glow: 'shadow-blue-300',   label: 'Specimen',   badge: 'bg-blue-100 text-blue-800'     },
+  Legendary:  { color: 'text-amber-700',  bg: 'bg-amber-50',   glow: 'shadow-amber-400',  label: 'Legendary',  badge: 'bg-amber-100 text-amber-800'   },
 };
 
 export const allCards: FishingCard[] = [];
