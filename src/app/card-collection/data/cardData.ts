@@ -19,6 +19,8 @@ export interface FishingCard {
   foil?: boolean;
   gradient: string;
   borderColor: string;
+  hint?: string;
+habitat?: string;
 }
 
 export const rarityConfig: Record<CardRarity, { color: string; bg: string; glow: string; label: string; badge: string }> = {
