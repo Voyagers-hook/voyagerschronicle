@@ -16,22 +16,26 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Adventure Home', icon: 'HomeIcon', href: '/adventure-home' },
-  { label: 'Card Collection', icon: 'BookOpenIcon', href: '/card-collection' },
-  { label: 'Card Discovery', icon: 'MagnifyingGlassIcon', href: '/card-discovery' },
-  { label: 'Open a Pack', icon: 'GiftIcon', href: '/card-opening' },
-  { label: 'Trading Post', icon: 'ArrowsRightLeftIcon', href: '/trading' },
-  { label: 'Quiz Zone', icon: 'AcademicCapIcon', href: '/quiz' },
-  { label: 'Leaderboard', icon: 'TrophyIcon', href: '/leaderboard' },
-  { label: 'Fun Facts', icon: 'LightBulbIcon', href: '/fun-facts' },
-  { label: 'Rewards', icon: 'StarIcon', href: '/rewards' },
-  { label: 'Catch Log', icon: 'ClipboardDocumentListIcon', href: '/catch-log' },
+  { label: 'Adventure Home',  icon: 'HomeIcon',                  href: '/adventure-home' },
+  { label: 'Card Collection', icon: 'BookOpenIcon',              href: '/card-collection' },
+  { label: 'Card Discovery',  icon: 'MagnifyingGlassIcon',       href: '/card-discovery' },
+  { label: 'Open a Pack',     icon: 'GiftIcon',                  href: '/card-opening' },
+  { label: 'Trading Post',    icon: 'ArrowsRightLeftIcon',       href: '/trading' },
+  { label: 'Quiz Zone',       icon: 'AcademicCapIcon',           href: '/quiz' },
+  { label: 'Leaderboard',     icon: 'TrophyIcon',                href: '/leaderboard' },
+  { label: 'Fun Facts',       icon: 'LightBulbIcon',             href: '/fun-facts' },
+  { label: 'Rewards',         icon: 'StarIcon',                  href: '/rewards' },
+  { label: 'Catch Log',       icon: 'ClipboardDocumentListIcon', href: '/catch-log' },
 ];
 
-const bottomItems: NavItem[] = [
+const memberBottomItems: NavItem[] = [
   { label: 'Settings', icon: 'UserCircleIcon', href: '/settings' },
-  { label: 'Admin Panel', icon: 'Cog6ToothIcon', href: '/admin' },
-  { label: 'Analytics', icon: 'ChartBarIcon', href: '/admin-analytics' },
+];
+
+const adminBottomItems: NavItem[] = [
+  { label: 'Settings',         icon: 'UserCircleIcon', href: '/settings' },
+  { label: 'Admin Panel',      icon: 'Cog6ToothIcon',  href: '/admin' },
+  { label: 'Analytics',        icon: 'ChartBarIcon',   href: '/admin-analytics' },
 ];
 
 interface SidebarProps {
@@ -42,30 +46,34 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pendingTrades, setPendingTrades] = useState(0);
-  const [profile, setProfile] = useState<{ username: string | null; membership_tier: string | null } | null>(null);
+  const [profile, setProfile] = useState<{ username: string | null; membership_tier: string | null; role: string | null } | null>(null);
   const { user, signOut } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
-    // Fetch profile
-    supabase.from('user_profiles').select('username, membership_tier').eq('id', user.id).single()
+    supabase
+      .from('user_profiles')
+      .select('username, membership_tier, role')
+      .eq('id', user.id)
+      .single()
       .then(({ data }) => { if (data) setProfile(data); });
-    // Fetch pending trades count
-    supabase.from('trades').select('id', { count: 'exact', head: true }).eq('to_user_id', user.id).eq('trade_status', 'pending')
+    supabase
+      .from('trades')
+      .select('id', { count: 'exact', head: true })
+      .eq('to_user_id', user.id)
+      .eq('trade_status', 'pending')
       .then(({ count }) => setPendingTrades(count || 0));
   }, [user]);
 
   const handleSignOut = async () => {
-    try {
-      await signOut();
-      router.push('/login-screen');
-    } catch {
-      router.push('/login-screen');
-    }
+    try { await signOut(); } catch {}
+    router.push('/login-screen');
   };
 
+  const isAdmin = profile?.role === 'admin';
+  const bottomItems = isAdmin ? adminBottomItems : memberBottomItems;
   const isActive = (href: string) => currentPath === href;
 
   const displayName = profile?.username || user?.email?.split('@')[0] || 'Captain';
@@ -103,12 +111,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
         </span>
       ) : null}
       {compact && (
-        <span className="
-          absolute left-full ml-3 px-2 py-1 bg-primary-900 text-white text-xs
-          rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100
-          transition-opacity duration-150 pointer-events-none z-50
-          font-sans font-medium
-        ">
+        <span className="absolute left-full ml-3 px-2 py-1 bg-primary-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none z-50 font-sans font-medium">
           {item.label}
           {item.badge && item.badge > 0 ? ` (${item.badge})` : ''}
         </span>
@@ -118,7 +121,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
   const SidebarContent = ({ compact }: { compact: boolean }) => (
     <div className="flex flex-col h-full">
-      {/* Logo — larger, centred, no text */}
+      {/* Logo */}
       <div className={`flex items-center justify-center px-4 py-5 border-b border-primary-100 ${compact ? 'px-2 py-3' : ''}`}>
         <Image
           src="/assets/images/little_voyagers_logo-1776778067350.png"
@@ -149,9 +152,11 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
       {/* Main nav */}
       <nav className="flex-1 px-2 pt-3 space-y-0.5 overflow-y-auto">
-        <p className={`text-xs font-sans font-semibold text-primary-400 uppercase tracking-widest mb-2 px-3 ${compact ? 'hidden' : ''}`}>
-          Explore
-        </p>
+        {!compact && (
+          <p className="text-xs font-sans font-semibold text-primary-400 uppercase tracking-widest mb-2 px-3">
+            Explore
+          </p>
+        )}
         {navWithBadges.map((item) => (
           <NavLink key={`nav-${item.href}`} item={item} compact={compact} />
         ))}
@@ -159,9 +164,11 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
       {/* Bottom nav */}
       <div className="px-2 pb-4 border-t border-primary-100 pt-3 space-y-0.5">
-        <p className={`text-xs font-sans font-semibold text-primary-400 uppercase tracking-widest mb-2 px-3 ${compact ? 'hidden' : ''}`}>
-          Account
-        </p>
+        {!compact && (
+          <p className="text-xs font-sans font-semibold text-primary-400 uppercase tracking-widest mb-2 px-3">
+            {isAdmin ? 'Admin' : 'Account'}
+          </p>
+        )}
         {bottomItems.map((item) => (
           <NavLink key={`bottom-${item.href}`} item={item} compact={compact} />
         ))}
@@ -187,11 +194,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     <>
       {/* Desktop Sidebar */}
       <aside
-        className={`
-          hidden lg:flex flex-col bg-white border-r border-adventure-border
-          transition-all duration-300 ease-in-out flex-shrink-0
-          ${collapsed ? 'w-16' : 'w-64'}
-        `}
+        className={`hidden lg:flex flex-col bg-white border-r border-adventure-border transition-all duration-300 ease-in-out flex-shrink-0 ${collapsed ? 'w-16' : 'w-64'}`}
         style={{ minHeight: '100vh' }}
       >
         <SidebarContent compact={collapsed} />
@@ -210,20 +213,10 @@ export default function Sidebar({ currentPath }: SidebarProps) {
 
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
-          onClick={() => setMobileOpen(false)}
-        >
-          <aside
-            className="absolute left-0 top-0 bottom-0 w-64 bg-white shadow-panel"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)}>
+          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white shadow-panel" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-end p-3">
-              <button
-                onClick={() => setMobileOpen(false)}
-                className="p-2 rounded-lg hover:bg-primary-50 text-primary-500"
-                aria-label="Close navigation"
-              >
+              <button onClick={() => setMobileOpen(false)} className="p-2 rounded-lg hover:bg-primary-50 text-primary-500" aria-label="Close navigation">
                 <Icon name="XMarkIcon" size={20} />
               </button>
             </div>
