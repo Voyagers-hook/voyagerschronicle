@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { FishingCard, rarityConfig } from '@/app/card-collection/data/cardData';
 import Icon from '@/components/ui/AppIcon';
 
@@ -27,13 +28,15 @@ function StatBox({ label, value, color, icon }: { label: string; value: number |
       </div>
       <p className="font-display text-2xl font-bold" style={{ color }}>{value ?? '—'}</p>
       <div className="h-1.5 rounded-full mt-1 overflow-hidden bg-earth-100">
-        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${value ?? 0}%`, backgroundColor: color }} />
+        <div className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${value ?? 0}%`, backgroundColor: color }} />
       </div>
     </div>
   );
 }
 
 export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
+  const router = useRouter();
   const [flipped, setFlipped] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -44,7 +47,6 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
     return () => clearTimeout(t);
   }, []);
 
-  // When card flips to back, show stats after flip completes
   useEffect(() => {
     if (flipped) {
       const t = setTimeout(() => setShowStats(true), 500);
@@ -59,6 +61,11 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
     setTimeout(onClose, 200);
   };
 
+  const handleTrade = () => {
+    handleClose();
+    router.push(`/trading?offer=${card.id}&name=${encodeURIComponent(card.name)}`);
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 overflow-y-auto"
@@ -69,7 +76,7 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
       }}
       onClick={handleClose}
     >
-      {/* Close */}
+      {/* Close button */}
       <button
         onClick={handleClose}
         className="fixed top-4 right-4 z-20 w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
@@ -92,7 +99,7 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
           {flipped ? 'Tap card to flip back' : 'Tap card to see details'}
         </p>
 
-        {/* The card — 750/1000 ratio */}
+        {/* Card — 750/1000 ratio */}
         <div
           className="relative w-full cursor-pointer"
           style={{
@@ -111,7 +118,7 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
               transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
             }}
           >
-            {/* ── FRONT — card face image ── */}
+            {/* ── FRONT — card face ── */}
             <div
               className="absolute inset-0 rounded-3xl overflow-hidden"
               style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
@@ -123,7 +130,6 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
                   <Icon name="SparklesIcon" size={60} className="text-white/40" />
                 </div>
               )}
-              {/* Rarity overlays on front */}
               {card.rarity === 'Legendary' && (
                 <div className="absolute inset-0 pointer-events-none"
                   style={{ background: 'linear-gradient(135deg, rgba(255,0,128,0.2) 0%, rgba(255,165,0,0.2) 25%, rgba(255,255,0,0.2) 50%, rgba(0,255,128,0.2) 75%, rgba(0,128,255,0.2) 100%)', backgroundSize: '300% 300%', animation: 'legendaryRainbow 3s ease infinite', mixBlendMode: 'overlay' }} />
@@ -132,37 +138,29 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
                 <div className="absolute inset-0 pointer-events-none"
                   style={{ background: 'linear-gradient(135deg, rgba(147,197,253,0.25) 0%, rgba(196,181,253,0.25) 50%, rgba(167,243,208,0.25) 100%)', backgroundSize: '200% 200%', animation: 'specimenHolo 4s ease infinite', mixBlendMode: 'overlay' }} />
               )}
-              {/* Rarity badge */}
               <div className="absolute top-3 left-3 z-10">
                 <span className="text-white text-xs font-bold px-2.5 py-1 rounded-full"
-                  style={{ backgroundColor: `${card.borderColor}cc` }}>
-                  {card.rarity}
-                </span>
+                  style={{ backgroundColor: `${card.borderColor}cc` }}>{card.rarity}</span>
               </div>
-              {/* Card number */}
               <div className="absolute top-3 right-3 z-10">
-                <span className="text-white/60 text-xs font-sans font-bold">
-                  #{String(card.cardNumber).padStart(3, '0')}
-                </span>
+                <span className="text-white/60 text-xs font-sans font-bold">#{String(card.cardNumber).padStart(3, '0')}</span>
               </div>
-              {/* Card name at bottom */}
               <div className="absolute bottom-0 left-0 right-0 p-4 z-10"
                 style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)' }}>
                 <p className="font-display text-xl text-white drop-shadow">{card.name}</p>
                 <p className="text-white/60 text-xs font-sans">{card.species}</p>
               </div>
-              {/* Border */}
               <div className="absolute inset-0 rounded-3xl pointer-events-none"
                 style={{ border: `3px solid ${card.borderColor}` }} />
             </div>
 
-            {/* ── BACK — card back image (mirrored fix with scaleX) ── */}
+            {/* ── BACK — card back image, NOT mirrored ── */}
             <div
               className="absolute inset-0 rounded-3xl overflow-hidden"
               style={{
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
-                transform: 'rotateY(180deg)',
+                transform: 'rotateY(180deg) scaleX(-1)',
               }}
             >
               <img
@@ -209,12 +207,12 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
           </div>
 
           <div className="p-4 space-y-4">
-            {/* Stats grid */}
+            {/* Stats */}
             <div className="grid grid-cols-2 gap-2">
-              <StatBox label="Power"   value={card.power}         color="#ef4444" icon="BoltIcon"      />
-              <StatBox label="Energy"  value={card.stamina}       color="#3B82F6" icon="HeartIcon"     />
-              <StatBox label="Stealth" value={card.stealth}       color="#2D6A4F" icon="EyeSlashIcon"  />
-              <StatBox label="Beauty"  value={card.beauty}        color="#ec4899" icon="SparklesIcon"  />
+              <StatBox label="Power"   value={card.power}   color="#ef4444" icon="BoltIcon"     />
+              <StatBox label="Energy"  value={card.stamina} color="#3B82F6" icon="HeartIcon"    />
+              <StatBox label="Stealth" value={card.stealth} color="#2D6A4F" icon="EyeSlashIcon" />
+              <StatBox label="Beauty"  value={card.beauty}  color="#ec4899" icon="SparklesIcon" />
             </div>
 
             {/* HP + Card Level */}
@@ -260,7 +258,8 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
 
             {/* Trade button */}
             <button
-              className="w-full py-3 rounded-2xl text-white font-sans font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
+              onClick={handleTrade}
+              className="w-full py-3 rounded-2xl text-white font-sans font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 hover:opacity-90"
               style={{ background: 'linear-gradient(135deg, #2D6A4F, #3D9068)' }}
             >
               <Icon name="ArrowsRightLeftIcon" size={16} />
