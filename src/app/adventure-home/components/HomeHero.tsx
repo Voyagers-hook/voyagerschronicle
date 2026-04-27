@@ -97,9 +97,9 @@ export default function HomeHero() {
         className="absolute inset-0 w-full h-full object-cover sm:hidden"
       />
 
-      {/* Texture */}
-      <div className="absolute inset-0 opacity-5"
-        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E")` }} />
+      {/* Dark overlay for text readability */}
+      <div className="absolute inset-0"
+        style={{ background: 'linear-gradient(135deg, rgba(9,20,8,0.75) 0%, rgba(26,61,40,0.6) 50%, rgba(45,106,79,0.5) 100%)' }} />
 
       {/* Content */}
       <div className="relative w-full z-10 p-6 lg:p-8 flex flex-col sm:flex-row items-center sm:items-center sm:justify-between gap-6">
@@ -111,7 +111,7 @@ export default function HomeHero() {
             <Image
               src="/assets/images/little_voyagers_logo-1776778067350.png"
               alt="Little Voyagers Project Somerset"
-              width={100} height={100}
+              width={120} height={120}
               className="object-contain drop-shadow-lg"
             />
           </div>
