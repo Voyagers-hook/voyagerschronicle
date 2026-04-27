@@ -84,11 +84,6 @@ export default function HomeHero() {
   const xpProgress   = Math.min(Math.round((xp / nextLevelXp) * 100), 100);
 
   return (
-    {/* 
-      Container enforces sizes requested: 
-      - Mobile: min-h-[680px]
-      - Desktop (sm+): min-h-[400px], max-w-[1400px]
-    */}
     <div className="relative overflow-hidden rounded-3xl w-full max-w-[1400px] mx-auto min-h-[680px] sm:min-h-[400px] flex items-center">
       
       {/* ── Background images ── */}
