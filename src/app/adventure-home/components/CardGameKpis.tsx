@@ -90,7 +90,7 @@ export default function CardGameKpis() {
         </div>
         <div className="relative z-10 flex flex-col items-end gap-2">
           <Link href="/rewards" className="bg-white/20 hover:bg-white/30 text-white text-xs font-sans font-semibold px-4 py-2 rounded-xl transition-colors border border-white/30">
-            Redeem XP
+            Redeem Points
           </Link>
           <Link href="/leaderboard" className="bg-white text-xs font-sans font-semibold px-4 py-2 rounded-xl transition-colors" style={{ color: '#ff751f' }}>
             Leaderboard
