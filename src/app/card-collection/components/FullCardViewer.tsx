@@ -141,18 +141,6 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
                 <div className="absolute inset-0 pointer-events-none"
                   style={{ background: 'linear-gradient(135deg, rgba(147,197,253,0.25) 0%, rgba(196,181,253,0.25) 50%, rgba(167,243,208,0.25) 100%)', backgroundSize: '200% 200%', animation: 'specimenHolo 4s ease infinite', mixBlendMode: 'overlay' }} />
               )}
-              <div className="absolute top-3 left-3 z-10">
-                <span className="text-white text-xs font-bold px-2.5 py-1 rounded-full"
-                  style={{ backgroundColor: `${card.borderColor}cc` }}>{card.rarity}</span>
-              </div>
-              <div className="absolute top-3 right-3 z-10">
-                <span className="text-white/60 text-xs font-sans font-bold">#{String(card.cardNumber).padStart(3, '0')}</span>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 p-4 z-10"
-                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)' }}>
-                <p className="font-display text-xl text-white drop-shadow">{card.name}</p>
-                <p className="text-white/60 text-xs font-sans">{card.species}</p>
-              </div>
               <div className="absolute inset-0 rounded-3xl pointer-events-none"
                 style={{ border: `3px solid ${card.borderColor}` }} />
             </div>
