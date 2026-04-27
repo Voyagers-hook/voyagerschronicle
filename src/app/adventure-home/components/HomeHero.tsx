@@ -16,32 +16,14 @@ interface UserProfile {
   total_points: number;
 }
 
-// XP needed to reach each next level — matches get_level_from_xp DB function
 const XP_THRESHOLDS: Record<number, number> = {
   1: 150, 2: 400, 3: 750, 4: 1200, 5: 1800,
   6: 2500, 7: 3400, 8: 4500, 9: 6000, 10: 6000,
 };
 
-const FLOATING_ITEMS = [
-  { type: 'fish', color: 'rgba(59,130,246,0.8)',  x: '88%', y: '12%', size: 32, delay: '0s',   duration: '3.2s' },
-  { type: 'star', color: 'rgba(245,158,11,0.9)',  x: '92%', y: '55%', size: 24, delay: '0.8s', duration: '2.5s' },
-  { type: 'fish', color: 'rgba(255,117,31,0.7)',  x: '82%', y: '78%', size: 28, delay: '1.4s', duration: '3.8s' },
-];
 
-const FishSvg = ({ size, color }: { size: number; color: string }) => (
-  <svg width={size} height={size * 0.6} viewBox="0 0 60 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="28" cy="18" rx="22" ry="12" fill={color} />
-    <polygon points="50,18 60,8 60,28" fill={color} opacity="0.7" />
-    <circle cx="14" cy="14" r="3" fill="white" opacity="0.8" />
-    <circle cx="13" cy="13" r="1.5" fill="#0a1f3c" />
-  </svg>
-);
-
-const StarSvg = ({ size, color }: { size: number; color: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-  </svg>
-);
+const HERO_DESKTOP = 'https://voyagers-hook.github.io/images/adventure%20home%20desktop.jpg';
+const HERO_MOBILE  = 'https://voyagers-hook.github.io/images/adventure%20home%20mobile.jpg';
 
 export default function HomeHero() {
   const { user } = useAuth();
@@ -80,16 +62,26 @@ export default function HomeHero() {
   const xpProgress   = Math.min(Math.round((xp / nextLevelXp) * 100), 100);
 
   return (
-    <div className="relative overflow-hidden rounded-3xl p-6 lg:p-8"
-      style={{ background: 'linear-gradient(135deg, #091408 0%, #1A3D28 50%, #2D6A4F 100%)' }}>
+    <div className="relative overflow-hidden rounded-3xl">
+      {/* ── Background images ── */}
+      <img
+        src={HERO_DESKTOP}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover hidden sm:block"
+      />
+      <img
+        src={HERO_MOBILE}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover sm:hidden"
+      />
+
+      {/* Dark overlay for text readability */}
+      <div className="absolute inset-0"
+        style={{ background: 'linear-gradient(135deg, rgba(9,20,8,0.75) 0%, rgba(26,61,40,0.6) 50%, rgba(45,106,79,0.5) 100%)' }} />
+
       {/* Texture */}
       <div className="absolute inset-0 opacity-5"
         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E")` }} />
-      {/* Orbs */}
-      <div className="absolute top-0 right-0 w-72 h-72 rounded-full opacity-10"
-        style={{ background: 'radial-gradient(circle, #ff751f, transparent)', transform: 'translate(30%, -30%)' }} />
-      <div className="absolute bottom-0 right-20 w-40 h-40 rounded-full opacity-15"
-        style={{ background: 'radial-gradient(circle, #E9A23B, transparent)', transform: 'translateY(40%)' }} />
 
       {/* Floating items */}
       {mounted && FLOATING_ITEMS.map((item, i) => (
@@ -101,8 +93,8 @@ export default function HomeHero() {
         </div>
       ))}
 
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-
+      {/* Content */}
+      <div className="relative z-10 p-6 lg:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         {/* Left — greeting */}
         <div className="flex items-start gap-4">
           <div className="hidden sm:block flex-shrink-0" style={{ animation: 'logoWobble 6s ease-in-out infinite' }}>
@@ -143,7 +135,7 @@ export default function HomeHero() {
 
           {/* XP / level bar */}
           <div className="w-full sm:w-56 rounded-2xl border border-white/20 p-3"
-            style={{ backgroundColor: 'rgba(255,117,31,0.15)' }}>
+            style={{ backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)' }}>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
                 <Icon name="StarIcon" size={13} className="text-amber-400" />
