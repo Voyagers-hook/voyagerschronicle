@@ -21,26 +21,6 @@ const XP_THRESHOLDS: Record<number, number> = {
   6: 2500, 7: 3400, 8: 4500, 9: 6000, 10: 6000,
 };
 
-const FLOATING_ITEMS = [
-  { type: 'fish', color: 'rgba(59,130,246,0.8)',  x: '88%', y: '12%', size: 32, delay: '0s',   duration: '3.2s' },
-  { type: 'star', color: 'rgba(245,158,11,0.9)',  x: '92%', y: '55%', size: 24, delay: '0.8s', duration: '2.5s' },
-  { type: 'fish', color: 'rgba(255,117,31,0.7)',  x: '82%', y: '78%', size: 28, delay: '1.4s', duration: '3.8s' },
-];
-
-const FishSvg = ({ size, color }: { size: number; color: string }) => (
-  <svg width={size} height={size * 0.6} viewBox="0 0 60 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="28" cy="18" rx="22" ry="12" fill={color} />
-    <polygon points="50,18 60,8 60,28" fill={color} opacity="0.7" />
-    <circle cx="14" cy="14" r="3" fill="white" opacity="0.8" />
-    <circle cx="13" cy="13" r="1.5" fill="#0a1f3c" />
-  </svg>
-);
-
-const StarSvg = ({ size, color }: { size: number; color: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-  </svg>
-);
 
 const HERO_DESKTOP = 'https://voyagers-hook.github.io/images/adventure%20home%20desktop.jpg';
 const HERO_MOBILE  = 'https://voyagers-hook.github.io/images/adventure%20home%20mobile.jpg';
@@ -87,7 +67,7 @@ export default function HomeHero() {
       <img
         src={HERO_DESKTOP}
         alt=""
-        className="absolute inset-0 w-full h-full object-cover hidden sm:block"
+        className="absolute inset-0 w-1400px h-400px object-cover hidden sm:block"
       />
       <img
         src={HERO_MOBILE}
