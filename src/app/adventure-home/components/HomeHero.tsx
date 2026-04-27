@@ -83,7 +83,7 @@ export default function HomeHero() {
   const xpProgress   = Math.min(Math.round((xp / nextLevelXp) * 100), 100);
 
   return (
-    <div className="relative overflow-hidden rounded-3xl w-full max-w-[1400px] mx-auto min-h-[500px] sm:min-h-[400px] flex items-center justify-center sm:justify-start">
+    <div className="relative overflow-hidden rounded-3xl w-full max-w-[1400px] mx-auto min-h-[400px] sm:min-h-[400px] flex items-center justify-center sm:justify-start">
       
       {/* ── Background images ── */}
       <img
@@ -96,10 +96,6 @@ export default function HomeHero() {
         alt="Mobile Background"
         className="absolute inset-0 w-full h-full object-cover sm:hidden"
       />
-
-      {/* Dark overlay for text readability */}
-      <div className="absolute inset-0"
-        style={{ background: 'linear-gradient(135deg, rgba(9,20,8,0.75) 0%, rgba(26,61,40,0.6) 50%, rgba(45,106,79,0.5) 100%)' }} />
 
       {/* Texture */}
       <div className="absolute inset-0 opacity-5"
@@ -115,7 +111,7 @@ export default function HomeHero() {
             <Image
               src="/assets/images/little_voyagers_logo-1776778067350.png"
               alt="Little Voyagers Project Somerset"
-              width={64} height={64}
+              width={100} height={100}
               className="object-contain drop-shadow-lg"
             />
           </div>
