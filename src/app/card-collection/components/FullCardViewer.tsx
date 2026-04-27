@@ -154,15 +154,16 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
                 style={{ border: `3px solid ${card.borderColor}` }} />
             </div>
 
-            {/* ── BACK — card back image, NOT mirrored ── */}
-            <div
-              className="absolute inset-0 rounded-3xl overflow-hidden"
-              style={{
-                backfaceVisibility: 'hidden',
-                WebkitBackfaceVisibility: 'hidden',
-                transform: 'rotateY(180deg) scaleX(-1)',
-              }}
-            >
+           {/* ── BACK — card back image, NOT mirrored ── */}
+<div
+  className="absolute inset-0 rounded-3xl overflow-hidden"
+  style={{
+    backfaceVisibility: 'hidden',
+    WebkitBackfaceVisibility: 'hidden',
+    transform: 'rotateY(180deg)',
+  }}
+>
+  <div style={{ transform: 'scaleX(-1)', width: '100%', height: '100%' }}>
               <img
                 src={CARD_BACK}
                 alt="Card back"
