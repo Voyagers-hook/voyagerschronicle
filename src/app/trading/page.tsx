@@ -128,8 +128,8 @@ export default function TradingPage() {
     if (!user) return;
     setLoading(true);
 
-    // 1. Browse listings — other users' listed cards
-    const { data: otherListings } = await supabase
+    // 1. Browse listings — other users' listed cards (fetch username safely through user_cards)
+    const { data: otherListings, error: browseError } = await supabase
       .from('trade_listings')
       .select(`
         id,
@@ -138,10 +138,12 @@ export default function TradingPage() {
         card_id,
         created_at,
         cards (id, name, rarity, power, stealth, energy, beauty, gradient, border_color, image_url, card_number),
-        user_profiles (username)
+        user_cards ( user_profiles ( username ) )
       `)
       .neq('user_id', user.id)
       .order('created_at', { ascending: false });
+
+    if (browseError) console.error("Error fetching browse listings:", browseError);
 
     if (otherListings) {
       setBrowseListings(otherListings
@@ -152,13 +154,13 @@ export default function TradingPage() {
           user_card_id: l.user_card_id,
           card_id: l.card_id,
           card: l.cards,
-          owner_username: l.user_profiles?.username ?? 'Unknown',
+          owner_username: l.user_cards?.user_profiles?.username ?? 'Unknown',
           created_at: l.created_at,
         })));
     }
 
-    // 2. My listings
-    const { data: myListingsData } = await supabase
+    // 2. My listings (no need to fetch user_profiles here, skipping it prevents the error!)
+    const { data: myListingsData, error: myError } = await supabase
       .from('trade_listings')
       .select(`
         id,
@@ -166,11 +168,12 @@ export default function TradingPage() {
         user_card_id,
         card_id,
         created_at,
-        cards (id, name, rarity, power, stealth, energy, beauty, gradient, border_color, image_url, card_number),
-        user_profiles (username)
+        cards (id, name, rarity, power, stealth, energy, beauty, gradient, border_color, image_url, card_number)
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
+
+    if (myError) console.error("Error fetching my listings:", myError);
 
     if (myListingsData) {
       setMyListings(myListingsData
@@ -181,7 +184,7 @@ export default function TradingPage() {
           user_card_id: l.user_card_id,
           card_id: l.card_id,
           card: l.cards,
-          owner_username: l.user_profiles?.username ?? 'Me',
+          owner_username: 'Me',
           created_at: l.created_at,
         })));
     }
