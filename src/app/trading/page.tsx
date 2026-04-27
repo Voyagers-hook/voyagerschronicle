@@ -57,38 +57,102 @@ const rarityColors: Record<string, { bg: string; text: string; border: string }>
   Legendary:  { bg: '#fffbeb', text: '#92400e', border: '#F59E0B' },
 };
 
-function StatBar({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs font-sans text-earth-400 w-14 flex-shrink-0">{label}</span>
-      <div className="flex-1 h-1.5 bg-earth-100 rounded-full overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${value}%`, backgroundColor: color }} />
-      </div>
-      <span className="text-xs font-sans font-semibold text-earth-600 w-6 text-right tabular-nums">{value}</span>
-    </div>
-  );
-}
+const rarityGlowColors: Record<string, string> = {
+  Widespread: 'rgba(196,144,80,0.5)',
+  Elusive:    'rgba(45,106,79,0.6)',
+  Specimen:   'rgba(59,130,246,0.7)',
+  Legendary:  'rgba(245,158,11,0.8)',
+};
 
-function MiniCardDisplay({ card }: { card: Card }) {
-  const rc = rarityColors[card.rarity] ?? rarityColors.Widespread;
+/* ── Card display that matches the collection style ── */
+function TradeCardDisplay({ card, size = 'normal' }: { card: Card; size?: 'normal' | 'small' }) {
+  const isShiny = card.rarity === 'Specimen' || card.rarity === 'Legendary';
+  const borderWidth = isShiny ? '3px' : '2px';
+  const width = size === 'small' ? 'w-24' : 'w-32';
+
   return (
-    <div className="w-28 rounded-2xl overflow-hidden shadow-card flex-shrink-0"
-      style={{ border: `2px solid ${card.border_color}` }}>
-      <div className={`bg-gradient-to-br ${card.gradient} h-20 flex flex-col items-center justify-center p-2 relative overflow-hidden`}>
+    <div className={`${width} flex-shrink-0`}>
+      <div
+        className="relative rounded-2xl overflow-hidden"
+        style={{
+          aspectRatio: '750 / 1000',
+          borderWidth,
+          borderStyle: 'solid',
+          borderColor: card.border_color,
+          boxShadow: `0 0 ${isShiny ? 20 : 10}px ${isShiny ? 4 : 2}px ${rarityGlowColors[card.rarity] ?? 'rgba(0,0,0,0.1)'}`,
+        }}
+      >
+        {/* Full bleed image or gradient */}
         {card.image_url ? (
           <img src={card.image_url} alt={card.name} className="absolute inset-0 w-full h-full object-cover" />
         ) : (
-          <Icon name="SparklesIcon" size={20} className="text-white/80 mb-1" />
+          <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} flex items-center justify-center`}>
+            <Icon name="SparklesIcon" size={28} className="text-white/40" />
+          </div>
         )}
-        <p className="text-white font-display text-xs text-center leading-tight relative z-10 drop-shadow">{card.name}</p>
+
+        {/* Legendary overlay */}
+        {card.rarity === 'Legendary' && (
+          <>
+            <div className="absolute inset-0 pointer-events-none"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255,0,128,0.25) 0%, rgba(255,165,0,0.25) 20%, rgba(255,255,0,0.25) 40%, rgba(0,255,128,0.25) 60%, rgba(0,128,255,0.25) 80%, rgba(128,0,255,0.25) 100%)',
+                backgroundSize: '300% 300%',
+                animation: 'legendaryRainbow 3s ease infinite',
+                mixBlendMode: 'overlay',
+              }} />
+            <div className="absolute inset-0 pointer-events-none"
+              style={{
+                background: 'linear-gradient(45deg, transparent 20%, rgba(255,255,255,0.8) 50%, transparent 80%)',
+                backgroundSize: '200% 200%',
+                animation: 'foilShimmer 2s ease infinite',
+              }} />
+          </>
+        )}
+
+        {/* Specimen overlay */}
+        {card.rarity === 'Specimen' && (
+          <>
+            <div className="absolute inset-0 pointer-events-none"
+              style={{
+                background: 'linear-gradient(135deg, rgba(147,197,253,0.3) 0%, rgba(196,181,253,0.3) 33%, rgba(167,243,208,0.3) 66%, rgba(147,197,253,0.3) 100%)',
+                backgroundSize: '200% 200%',
+                animation: 'specimenHolo 4s ease infinite',
+                mixBlendMode: 'overlay',
+              }} />
+            <div className="absolute inset-0 pointer-events-none"
+              style={{
+                background: 'linear-gradient(135deg, transparent 25%, rgba(255,255,255,0.6) 50%, transparent 75%)',
+                backgroundSize: '200% 200%',
+                animation: 'foilShimmer 2.5s ease infinite',
+              }} />
+          </>
+        )}
+
+        {/* Rarity icon badge */}
+        {card.rarity === 'Legendary' && (
+          <div className="absolute top-1.5 left-1.5 z-20">
+            <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center shadow-lg">
+              <Icon name="StarIcon" size={11} className="text-white" />
+            </div>
+          </div>
+        )}
+        {card.rarity === 'Specimen' && (
+          <div className="absolute top-1.5 left-1.5 z-20">
+            <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
+              <Icon name="SparklesIcon" size={10} className="text-white" />
+            </div>
+          </div>
+        )}
       </div>
-      <div className="bg-white px-2 py-2 space-y-1">
-        <span className="block text-center text-xs font-sans font-bold rounded-full px-2 py-0.5 mb-1"
-          style={{ backgroundColor: rc.bg, color: rc.text }}>{card.rarity}</span>
-        <StatBar label="PWR" value={card.power}   color="#ef4444" />
-        <StatBar label="STL" value={card.stealth} color="#2D6A4F" />
-        <StatBar label="ENE" value={card.energy}  color="#3B82F6" />
-        <StatBar label="BEA" value={card.beauty}  color="#ec4899" />
+
+      {/* Name + rarity label below the card */}
+      <div className="mt-2 text-center">
+        <p className="font-display text-xs text-primary-800 leading-tight truncate">{card.name}</p>
+        <span className="inline-block text-xs font-sans font-bold mt-0.5 px-2 py-0.5 rounded-full"
+          style={{ backgroundColor: rarityColors[card.rarity]?.bg ?? '#f5f5f5', color: rarityColors[card.rarity]?.text ?? '#333' }}>
+          {card.rarity}
+        </span>
       </div>
     </div>
   );
@@ -103,20 +167,17 @@ export default function TradingPage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
 
-  // Data
   const [browseListings, setBrowseListings] = useState<Listing[]>([]);
   const [myListings, setMyListings] = useState<Listing[]>([]);
   const [myCards, setMyCards] = useState<{ user_card_id: string; card: Card }[]>([]);
   const [incomingTrades, setIncomingTrades] = useState<Trade[]>([]);
   const [myOutgoingTrades, setMyOutgoingTrades] = useState<Trade[]>([]);
 
-  // Propose modal
   const [proposingFor, setProposingFor] = useState<Listing | null>(null);
   const [selectedMyCard, setSelectedMyCard] = useState<{ user_card_id: string; card: Card } | null>(null);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  // Show toast if redirected after listing
   useEffect(() => {
     if (searchParams.get('listed') === 'true') {
       showToast('Card listed for trade! Other Voyagers can now see it.');
@@ -128,22 +189,16 @@ export default function TradingPage() {
     if (!user) return;
     setLoading(true);
 
-    // 1. Browse listings — other users' listed cards (fetch username safely through user_cards)
-    const { data: otherListings, error: browseError } = await supabase
+    // 1. Browse listings — other users'
+    const { data: otherListings } = await supabase
       .from('trade_listings')
       .select(`
-        id,
-        user_id,
-        user_card_id,
-        card_id,
-        created_at,
+        id, user_id, user_card_id, card_id, created_at,
         cards (id, name, rarity, power, stealth, energy, beauty, gradient, border_color, image_url, card_number),
         user_cards ( user_profiles ( username ) )
       `)
       .neq('user_id', user.id)
       .order('created_at', { ascending: false });
-
-    if (browseError) console.error("Error fetching browse listings:", browseError);
 
     if (otherListings) {
       setBrowseListings(otherListings
@@ -159,21 +214,15 @@ export default function TradingPage() {
         })));
     }
 
-    // 2. My listings (no need to fetch user_profiles here, skipping it prevents the error!)
-    const { data: myListingsData, error: myError } = await supabase
+    // 2. My listings
+    const { data: myListingsData } = await supabase
       .from('trade_listings')
       .select(`
-        id,
-        user_id,
-        user_card_id,
-        card_id,
-        created_at,
+        id, user_id, user_card_id, card_id, created_at,
         cards (id, name, rarity, power, stealth, energy, beauty, gradient, border_color, image_url, card_number)
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
-
-    if (myError) console.error("Error fetching my listings:", myError);
 
     if (myListingsData) {
       setMyListings(myListingsData
@@ -189,7 +238,7 @@ export default function TradingPage() {
         })));
     }
 
-    // 3. My opened cards (for offering in trades)
+    // 3. My opened cards
     const { data: mine } = await supabase
       .from('user_cards')
       .select('id, card_id, cards (id, name, rarity, power, stealth, energy, beauty, gradient, border_color, image_url, card_number)')
@@ -248,17 +297,14 @@ export default function TradingPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // Remove my listing
   const handleRemoveListing = async (listingId: string) => {
     await supabase.from('trade_listings').delete().eq('id', listingId);
     showToast('Card removed from trade listings.');
     loadData();
   };
 
-  // Send trade proposal
   const handlePropose = async () => {
     if (!proposingFor || !selectedMyCard || !user) return;
-
     const { error } = await supabase.from('trades').insert({
       from_user_id: user.id,
       to_user_id: proposingFor.user_id,
@@ -268,7 +314,6 @@ export default function TradingPage() {
       wanted_user_card_id: proposingFor.user_card_id,
       trade_status: 'pending',
     });
-
     if (error) { showToast('Error sending trade: ' + error.message); return; }
     showToast(`Trade proposal sent to ${proposingFor.owner_username}!`);
     setProposingFor(null);
@@ -276,7 +321,6 @@ export default function TradingPage() {
     loadData();
   };
 
-  // Accept trade — swap user_cards ownership + remove listings
   const handleAccept = async (trade: Trade) => {
     const { error } = await supabase
       .from('trades')
@@ -284,19 +328,16 @@ export default function TradingPage() {
       .eq('id', trade.id);
     if (error) { showToast('Error accepting trade'); return; }
 
-    // Swap ownership using user_card_ids
     await Promise.all([
       supabase.from('user_cards').update({ user_id: trade.to_user_id }).eq('id', trade.offered_user_card_id),
       supabase.from('user_cards').update({ user_id: trade.from_user_id }).eq('id', trade.wanted_user_card_id),
     ]);
 
-    // Remove any listings for the swapped cards
     await Promise.all([
       supabase.from('trade_listings').delete().eq('user_card_id', trade.offered_user_card_id),
       supabase.from('trade_listings').delete().eq('user_card_id', trade.wanted_user_card_id),
     ]);
 
-    // Cancel any other pending trades involving these cards
     await supabase
       .from('trades')
       .update({ trade_status: 'cancelled', updated_at: new Date().toISOString() })
@@ -380,26 +421,19 @@ export default function TradingPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {browseListings.map(listing => (
-                      <div key={listing.id} className="bg-white rounded-2xl border border-adventure-border shadow-card p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-700 font-sans flex-shrink-0">
+                      <div key={listing.id} className="bg-white rounded-2xl border border-adventure-border shadow-card p-4 flex flex-col items-center">
+                        <div className="flex items-center gap-2 mb-3 w-full">
+                          <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-700 font-sans flex-shrink-0">
                             {listing.owner_username.slice(0, 2).toUpperCase()}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-sans font-semibold text-primary-800 truncate">{listing.owner_username}</p>
-                            <p className="text-xs font-sans text-earth-400">
-                              {new Date(listing.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                            </p>
-                          </div>
+                          <p className="text-xs font-sans font-semibold text-primary-800 truncate">{listing.owner_username}</p>
                         </div>
-                        <div className="flex justify-center mb-3">
-                          <MiniCardDisplay card={listing.card} />
-                        </div>
+                        <TradeCardDisplay card={listing.card} />
                         <button
                           onClick={() => setProposingFor(listing)}
-                          className="w-full text-white font-sans font-semibold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                          className="w-full mt-3 text-white font-sans font-semibold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95"
                           style={{ backgroundColor: '#ff751f' }}>
                           <Icon name="ArrowsRightLeftIcon" size={12} />
                           Offer a Trade
@@ -423,23 +457,21 @@ export default function TradingPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {myListings.map(listing => (
-                      <div key={listing.id} className="bg-white rounded-2xl border border-adventure-border shadow-card p-4">
-                        <div className="flex items-center justify-between mb-3">
+                      <div key={listing.id} className="bg-white rounded-2xl border border-adventure-border shadow-card p-4 flex flex-col items-center">
+                        <div className="flex items-center justify-between mb-3 w-full">
                           <span className="text-xs font-sans text-earth-400">
-                            Listed {new Date(listing.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                            {new Date(listing.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                           </span>
                           <span className="text-xs font-sans font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
                             Active
                           </span>
                         </div>
-                        <div className="flex justify-center mb-3">
-                          <MiniCardDisplay card={listing.card} />
-                        </div>
+                        <TradeCardDisplay card={listing.card} />
                         <button
                           onClick={() => handleRemoveListing(listing.id)}
-                          className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-sans font-semibold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors">
+                          className="w-full mt-3 bg-red-50 hover:bg-red-100 text-red-600 font-sans font-semibold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors">
                           <Icon name="XMarkIcon" size={12} />
                           Remove Listing
                         </button>
@@ -479,16 +511,16 @@ export default function TradingPage() {
                           </span>
                         </div>
                         <div className="flex items-center justify-center gap-4 mb-4">
-                          <div className="text-center">
-                            <p className="text-xs font-sans text-earth-400 mb-1">They Offer</p>
-                            {trade.offered_card && <MiniCardDisplay card={trade.offered_card} />}
+                          <div className="flex flex-col items-center">
+                            <p className="text-xs font-sans text-earth-400 mb-2">They Offer</p>
+                            {trade.offered_card && <TradeCardDisplay card={trade.offered_card} size="small" />}
                           </div>
                           <div className="w-10 h-10 rounded-full bg-primary-50 border border-primary-200 flex items-center justify-center flex-shrink-0">
                             <Icon name="ArrowsRightLeftIcon" size={18} className="text-primary-500" />
                           </div>
-                          <div className="text-center">
-                            <p className="text-xs font-sans text-earth-400 mb-1">For Your</p>
-                            {trade.wanted_card && <MiniCardDisplay card={trade.wanted_card} />}
+                          <div className="flex flex-col items-center">
+                            <p className="text-xs font-sans text-earth-400 mb-2">For Your</p>
+                            {trade.wanted_card && <TradeCardDisplay card={trade.wanted_card} size="small" />}
                           </div>
                         </div>
                         {trade.trade_status === 'pending' && (
@@ -534,14 +566,14 @@ export default function TradingPage() {
                           </span>
                         </div>
                         <div className="flex items-center justify-center gap-4 mb-4">
-                          <div className="text-center">
-                            <p className="text-xs font-sans text-earth-400 mb-1">Your card</p>
-                            {trade.offered_card && <MiniCardDisplay card={trade.offered_card} />}
+                          <div className="flex flex-col items-center">
+                            <p className="text-xs font-sans text-earth-400 mb-2">Your card</p>
+                            {trade.offered_card && <TradeCardDisplay card={trade.offered_card} size="small" />}
                           </div>
                           <Icon name="ArrowsRightLeftIcon" size={18} className="text-primary-400 flex-shrink-0" />
-                          <div className="text-center">
-                            <p className="text-xs font-sans text-earth-400 mb-1">Their card</p>
-                            {trade.wanted_card && <MiniCardDisplay card={trade.wanted_card} />}
+                          <div className="flex flex-col items-center">
+                            <p className="text-xs font-sans text-earth-400 mb-2">Their card</p>
+                            {trade.wanted_card && <TradeCardDisplay card={trade.wanted_card} size="small" />}
                           </div>
                         </div>
                         {trade.trade_status === 'pending' && (
@@ -575,36 +607,40 @@ export default function TradingPage() {
 
               {/* Card they want */}
               <div className="bg-primary-50 border border-primary-200 rounded-2xl p-4 mb-4">
-                <p className="text-xs font-sans font-semibold text-primary-600 mb-2 uppercase tracking-wide">You want</p>
-                <div className="flex items-center gap-3">
-                  <MiniCardDisplay card={proposingFor.card} />
+                <p className="text-xs font-sans font-semibold text-primary-600 mb-3 uppercase tracking-wide">You want</p>
+                <div className="flex items-center gap-4">
+                  <TradeCardDisplay card={proposingFor.card} size="small" />
                   <div>
                     <p className="font-display text-sm text-primary-800">{proposingFor.card.name}</p>
-                    <p className="text-xs font-sans text-earth-400">from {proposingFor.owner_username}</p>
+                    <p className="text-xs font-sans text-earth-400 mt-0.5">from {proposingFor.owner_username}</p>
+                    <span className="inline-block text-xs font-sans font-bold mt-1 px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: rarityColors[proposingFor.card.rarity]?.bg, color: rarityColors[proposingFor.card.rarity]?.text }}>
+                      {proposingFor.card.rarity}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <p className="text-sm font-sans text-earth-500 mb-3">
-                Select one of your cards to offer in return:
-              </p>
+              <p className="text-sm font-sans text-earth-500 mb-3">Select one of your cards to offer in return:</p>
 
               {myCards.length === 0 ? (
                 <p className="text-sm font-sans text-earth-400 text-center py-6">You don't have any cards to offer yet. Open some packs first!</p>
               ) : (
-                <div className="grid grid-cols-2 gap-3 mb-5">
+                <div className="grid grid-cols-3 gap-3 mb-5">
                   {myCards.map(mc => {
                     const isFair = mc.card.rarity === proposingFor.card.rarity;
                     const isSelected = selectedMyCard?.user_card_id === mc.user_card_id;
                     return (
                       <button key={mc.user_card_id} onClick={() => setSelectedMyCard(mc)}
-                        className={`rounded-xl overflow-hidden border-2 transition-all text-left ${isSelected ? 'border-orange-500 ring-2 ring-orange-300' : isFair ? 'border-green-400' : 'border-adventure-border'}`}>
-                        <div className={`bg-gradient-to-br ${mc.card.gradient} h-14 flex items-center justify-center relative`}>
-                          {mc.card.image_url && <img src={mc.card.image_url} alt={mc.card.name} className="absolute inset-0 w-full h-full object-cover" />}
-                          <p className="text-white font-display text-xs text-center px-2 leading-tight relative z-10 drop-shadow">{mc.card.name}</p>
-                        </div>
-                        <div className="bg-white p-2 flex items-center justify-between">
-                          <span className="text-xs font-sans font-bold" style={{ color: rarityColors[mc.card.rarity]?.text ?? '#333' }}>{mc.card.rarity}</span>
+                        className={`rounded-2xl p-2 transition-all flex flex-col items-center ${
+                          isSelected
+                            ? 'bg-orange-50 ring-2 ring-orange-400'
+                            : isFair
+                              ? 'bg-green-50 ring-1 ring-green-300 hover:ring-2'
+                              : 'bg-white hover:bg-primary-50 ring-1 ring-adventure-border'
+                        }`}>
+                        <TradeCardDisplay card={mc.card} size="small" />
+                        <div className="flex items-center gap-1 mt-1">
                           {isFair && <span className="text-xs text-green-600 font-sans font-semibold">Fair</span>}
                           {isSelected && <Icon name="CheckCircleIcon" size={14} className="text-orange-500" />}
                         </div>
