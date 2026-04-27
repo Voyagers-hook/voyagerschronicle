@@ -118,10 +118,13 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
               transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
             }}
           >
-            {/* ── FRONT — card face ── */}
+            {/* ── FRONT face ── */}
             <div
               className="absolute inset-0 rounded-3xl overflow-hidden"
-              style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+              style={{
+                backfaceVisibility: 'hidden',
+                WebkitBackfaceVisibility: 'hidden',
+              }}
             >
               {card.image ? (
                 <img src={card.image} alt={card.name} className="w-full h-full object-cover" />
@@ -154,28 +157,29 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
                 style={{ border: `3px solid ${card.borderColor}` }} />
             </div>
 
-           {/* ── BACK — card back image, NOT mirrored ── */}
-<div
-  className="absolute inset-0 rounded-3xl overflow-hidden"
-  style={{
-    backfaceVisibility: 'hidden',
-    WebkitBackfaceVisibility: 'hidden',
-    transform: 'rotateY(180deg)',
-  }}
->
-  <div style={{ transform: 'scaleX(-1)', width: '100%', height: '100%' }}>
-              <img
-                src={CARD_BACK}
-                alt="Card back"
-                className="w-full h-full object-cover"
-              />
+            {/* ── BACK face — card back image, mirror cancelled with inner scaleX(-1) ── */}
+            <div
+              className="absolute inset-0 rounded-3xl overflow-hidden"
+              style={{
+                backfaceVisibility: 'hidden',
+                WebkitBackfaceVisibility: 'hidden',
+                transform: 'rotateY(180deg)',
+              }}
+            >
+              <div style={{ width: '100%', height: '100%', transform: 'scaleX(-1)' }}>
+                <img
+                  src={CARD_BACK}
+                  alt="Card back"
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <div className="absolute inset-0 rounded-3xl pointer-events-none"
                 style={{ border: `3px solid ${card.borderColor}` }} />
             </div>
           </div>
         </div>
 
-        {/* ── STATS PANEL — slides up after flip ── */}
+        {/* ── STATS PANEL ── */}
         <div
           className="w-full rounded-3xl overflow-hidden"
           style={{
