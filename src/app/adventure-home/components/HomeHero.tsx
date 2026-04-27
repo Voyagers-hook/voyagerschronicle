@@ -67,7 +67,7 @@ export default function HomeHero() {
       <img
         src={HERO_DESKTOP}
         alt=""
-        className="absolute inset-0 w-1400px h-400px object-cover hidden sm:block"
+        className="absolute inset-0 w-[1400px] h-[400px] object-cover hidden sm:block"
       />
       <img
         src={HERO_MOBILE}
