@@ -39,7 +39,7 @@ export default function HomeHero() {
       return; 
     }
 
-    let isCancelled = false; // Prevents memory leaks if component unmounts
+    let isCancelled = false;
     const supabase = createClient();
 
     Promise.all([
@@ -56,7 +56,6 @@ export default function HomeHero() {
       .then(([profResult, countResult]) => {
         if (isCancelled) return;
         
-        // Safely handle potential Supabase errors
         if (profResult.error) console.error('Profile fetch error:', profResult.error);
         if (countResult.error) console.error('Card count error:', countResult.error);
 
@@ -71,7 +70,7 @@ export default function HomeHero() {
       });
 
       return () => {
-        isCancelled = true; // Cleanup function
+        isCancelled = true;
       };
   }, [user]);
 
@@ -84,7 +83,7 @@ export default function HomeHero() {
   const xpProgress   = Math.min(Math.round((xp / nextLevelXp) * 100), 100);
 
   return (
-    <div className="relative overflow-hidden rounded-3xl w-full max-w-[1400px] mx-auto min-h-[680px] sm:min-h-[400px] flex items-center">
+    <div className="relative overflow-hidden rounded-3xl w-full max-w-[1400px] mx-auto min-h-[500px] sm:min-h-[400px] flex items-center justify-center sm:justify-start">
       
       {/* ── Background images ── */}
       <img
@@ -102,20 +101,25 @@ export default function HomeHero() {
       <div className="absolute inset-0"
         style={{ background: 'linear-gradient(135deg, rgba(9,20,8,0.75) 0%, rgba(26,61,40,0.6) 50%, rgba(45,106,79,0.5) 100%)' }} />
 
+      {/* Texture */}
+      <div className="absolute inset-0 opacity-5"
+        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E")` }} />
+
       {/* Content */}
-      <div className="relative w-full z-10 p-6 lg:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+      <div className="relative w-full z-10 p-6 lg:p-8 flex flex-col sm:flex-row items-center sm:items-center sm:justify-between gap-6">
         
-        {/* Left — greeting */}
-        <div className="flex items-start gap-4">
-          <div className="hidden sm:block flex-shrink-0" style={{ animation: 'logoWobble 6s ease-in-out infinite' }}>
+        {/* Left — greeting & logo */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4">
+          {/* Logo - Now visible and centered on mobile */}
+          <div className="flex-shrink-0 mb-1 sm:mb-0" style={{ animation: 'logoWobble 6s ease-in-out infinite' }}>
             <Image
               src="/assets/images/little_voyagers_logo-1776778067350.png"
               alt="Little Voyagers Project Somerset"
-              width={100} height={100}
+              width={64} height={64}
               className="object-contain drop-shadow-lg"
             />
           </div>
-          <div>
+          <div className="flex flex-col items-center sm:items-start">
             {mounted && (
               <p className="text-primary-200 text-sm font-sans font-medium mb-1">
                 {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
@@ -133,7 +137,7 @@ export default function HomeHero() {
         </div>
 
         {/* Right — CTA + level/XP widget */}
-        <div className="flex flex-col sm:items-end gap-4">
+        <div className="flex flex-col items-center sm:items-end gap-4 w-full sm:w-auto mt-2 sm:mt-0">
           <Link
             href="/catch-log"
             className="inline-flex items-center justify-center gap-2 text-white font-sans font-semibold text-sm px-5 py-3 rounded-xl shadow-card transition-all duration-150 active:scale-95 hover:shadow-lg hover:scale-105"
@@ -144,7 +148,7 @@ export default function HomeHero() {
           </Link>
 
           {/* XP / level bar */}
-          <div className="w-full sm:w-100 rounded-2xl border border-white/20 p-3"
+          <div className="w-full max-w-[280px] sm:w-56 rounded-2xl border border-white/20 p-3"
             style={{ backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)' }}>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
