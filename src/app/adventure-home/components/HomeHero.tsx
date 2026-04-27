@@ -21,7 +21,6 @@ const XP_THRESHOLDS: Record<number, number> = {
   6: 2500, 7: 3400, 8: 4500, 9: 6000, 10: 6000,
 };
 
-
 const HERO_DESKTOP = 'https://voyagers-hook.github.io/images/adventure%20home%20desktop.jpg';
 const HERO_MOBILE  = 'https://voyagers-hook.github.io/images/adventure%20home%20mobile.jpg';
 
@@ -34,8 +33,15 @@ export default function HomeHero() {
 
   useEffect(() => {
     setMounted(true);
-    if (!user) { setLoading(false); return; }
+    
+    if (!user) { 
+      setLoading(false); 
+      return; 
+    }
+
+    let isCancelled = false; // Prevents memory leaks if component unmounts
     const supabase = createClient();
+
     Promise.all([
       supabase
         .from('user_profiles')
@@ -46,11 +52,27 @@ export default function HomeHero() {
         .from('user_cards')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id),
-    ]).then(([profResult, countResult]) => {
-      if (profResult.data) setProfile(profResult.data);
-      setCollectedCount(countResult.count || 0);
-      setLoading(false);
-    });
+    ])
+      .then(([profResult, countResult]) => {
+        if (isCancelled) return;
+        
+        // Safely handle potential Supabase errors
+        if (profResult.error) console.error('Profile fetch error:', profResult.error);
+        if (countResult.error) console.error('Card count error:', countResult.error);
+
+        if (profResult.data) setProfile(profResult.data);
+        setCollectedCount(countResult.count ?? 0);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (isCancelled) return;
+        console.error('Unexpected error:', err);
+        setLoading(false);
+      });
+
+      return () => {
+        isCancelled = true; // Cleanup function
+      };
   }, [user]);
 
   const displayName  = profile?.username || user?.email?.split('@')[0] || 'Captain';
@@ -62,16 +84,22 @@ export default function HomeHero() {
   const xpProgress   = Math.min(Math.round((xp / nextLevelXp) * 100), 100);
 
   return (
-    <div className="relative overflow-hidden rounded-3xl">
+    {/* 
+      Container enforces sizes requested: 
+      - Mobile: min-h-[680px]
+      - Desktop (sm+): min-h-[400px], max-w-[1400px]
+    */}
+    <div className="relative overflow-hidden rounded-3xl w-full max-w-[1400px] mx-auto min-h-[680px] sm:min-h-[400px] flex items-center">
+      
       {/* ── Background images ── */}
       <img
         src={HERO_DESKTOP}
-        alt=""
-        className="absolute inset-0 w-[1400px] h-[400px] object-cover hidden sm:block"
+        alt="Desktop Background"
+        className="absolute inset-0 w-full h-full object-cover hidden sm:block"
       />
       <img
         src={HERO_MOBILE}
-        alt=""
+        alt="Mobile Background"
         className="absolute inset-0 w-full h-full object-cover sm:hidden"
       />
 
@@ -83,18 +111,9 @@ export default function HomeHero() {
       <div className="absolute inset-0 opacity-5"
         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E")` }} />
 
-      {/* Floating items */}
-      {mounted && FLOATING_ITEMS.map((item, i) => (
-        <div key={i} className="absolute pointer-events-none select-none hidden lg:block"
-          style={{ left: item.x, top: item.y, animation: `floatBob ${item.duration} ${item.delay} ease-in-out infinite`, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.4))', zIndex: 5 }}>
-          {item.type === 'fish'
-            ? <FishSvg size={item.size} color={item.color} />
-            : <StarSvg size={item.size} color={item.color} />}
-        </div>
-      ))}
-
       {/* Content */}
-      <div className="relative z-10 p-6 lg:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="relative w-full z-10 p-6 lg:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        
         {/* Left — greeting */}
         <div className="flex items-start gap-4">
           <div className="hidden sm:block flex-shrink-0" style={{ animation: 'logoWobble 6s ease-in-out infinite' }}>
@@ -123,10 +142,10 @@ export default function HomeHero() {
         </div>
 
         {/* Right — CTA + level/XP widget */}
-        <div className="flex flex-col sm:items-end gap-3">
+        <div className="flex flex-col sm:items-end gap-4">
           <Link
             href="/catch-log"
-            className="inline-flex items-center gap-2 text-white font-sans font-semibold text-sm px-5 py-3 rounded-xl shadow-card transition-all duration-150 active:scale-95 hover:shadow-lg hover:scale-105"
+            className="inline-flex items-center justify-center gap-2 text-white font-sans font-semibold text-sm px-5 py-3 rounded-xl shadow-card transition-all duration-150 active:scale-95 hover:shadow-lg hover:scale-105"
             style={{ background: 'linear-gradient(135deg, #ff751f, #e85a00)', boxShadow: '0 4px 16px rgba(255,117,31,0.4)' }}
           >
             <Icon name="PlusCircleIcon" size={18} />
@@ -175,4 +194,4 @@ export default function HomeHero() {
       </div>
     </div>
   );
-}      
+}
