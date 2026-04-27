@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FishingCard, rarityConfig } from '@/app/card-collection/data/cardData';
 import Icon from '@/components/ui/AppIcon';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const CARD_BACK = 'https://raw.githubusercontent.com/Voyagers-hook/images/main/chronicle%20card%20back.png';
 
@@ -37,9 +39,13 @@ function StatBox({ label, value, color, icon }: { label: string; value: number |
 
 export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const supabase = createClient();
   const [flipped, setFlipped] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [listing, setListing] = useState(false);
+  const [alreadyListed, setAlreadyListed] = useState(false);
   const isShiny = card.rarity === 'Specimen' || card.rarity === 'Legendary';
 
   useEffect(() => {
@@ -56,14 +62,60 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
     }
   }, [flipped]);
 
+  // Check if already listed
+  useEffect(() => {
+    if (!user || !card.id) return;
+    const checkListing = async () => {
+      const { data } = await supabase
+        .from('trade_listings')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('card_id', card.id)
+        .limit(1);
+      if (data && data.length > 0) setAlreadyListed(true);
+    };
+    checkListing();
+  }, [user, card.id]);
+
   const handleClose = () => {
     setMounted(false);
     setTimeout(onClose, 200);
   };
 
-  const handleTrade = () => {
+  const handleListForTrade = async () => {
+    if (!user || !card.id || listing) return;
+    setListing(true);
+
+    // Get the user_card_id for this card
+    const { data: userCard } = await supabase
+      .from('user_cards')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('card_id', card.id)
+      .eq('opened', true)
+      .limit(1)
+      .single();
+
+    if (!userCard) {
+      setListing(false);
+      return;
+    }
+
+    const { error } = await supabase.from('trade_listings').insert({
+      user_id: user.id,
+      user_card_id: userCard.id,
+      card_id: card.id,
+    });
+
+    setListing(false);
+
+    if (error) {
+      console.error('Error listing card:', error);
+      return;
+    }
+
     handleClose();
-    router.push(`/trading?offer=${card.id}&name=${encodeURIComponent(card.name)}`);
+    router.push('/trading?listed=true');
   };
 
   return (
@@ -76,7 +128,6 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
       }}
       onClick={handleClose}
     >
-      {/* Close button */}
       <button
         onClick={handleClose}
         className="fixed top-4 right-4 z-20 w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
@@ -94,12 +145,10 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Hint text */}
         <p className="text-white/50 text-xs font-sans tracking-wide">
           {flipped ? 'Tap card to flip back' : 'Tap card to see details'}
         </p>
 
-        {/* Card — 750/1000 ratio */}
         <div
           className="relative w-full cursor-pointer"
           style={{
@@ -118,13 +167,10 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
               transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
             }}
           >
-            {/* ── FRONT face ── */}
+            {/* FRONT */}
             <div
               className="absolute inset-0 rounded-3xl overflow-hidden"
-              style={{
-                backfaceVisibility: 'hidden',
-                WebkitBackfaceVisibility: 'hidden',
-              }}
+              style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
             >
               {card.image ? (
                 <img src={card.image} alt={card.name} className="w-full h-full object-cover" />
@@ -145,21 +191,13 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
                 style={{ border: `3px solid ${card.borderColor}` }} />
             </div>
 
-            {/* ── BACK face — card back image, mirror cancelled with inner scaleX(-1) ── */}
+            {/* BACK */}
             <div
               className="absolute inset-0 rounded-3xl overflow-hidden"
-              style={{
-                backfaceVisibility: 'hidden',
-                WebkitBackfaceVisibility: 'hidden',
-                transform: 'rotateY(180deg)',
-              }}
+              style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
             >
               <div style={{ width: '100%', height: '100%', transform: 'scaleX(-1)' }}>
-                <img
-                  src={CARD_BACK}
-                  alt="Card back"
-                  className="w-full h-full object-cover"
-                />
+                <img src={CARD_BACK} alt="Card back" className="w-full h-full object-cover" />
               </div>
               <div className="absolute inset-0 rounded-3xl pointer-events-none"
                 style={{ border: `3px solid ${card.borderColor}` }} />
@@ -167,7 +205,7 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
           </div>
         </div>
 
-        {/* ── STATS PANEL ── */}
+        {/* STATS PANEL */}
         <div
           className="w-full rounded-3xl overflow-hidden"
           style={{
@@ -179,7 +217,6 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
             pointerEvents: showStats ? 'auto' : 'none',
           }}
         >
-          {/* Header */}
           <div className="p-4 flex items-center gap-3 border-b border-adventure-border"
             style={{ background: `linear-gradient(135deg, ${card.borderColor}15, ${card.borderColor}30)` }}>
             <div className="flex-1">
@@ -200,15 +237,13 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
           </div>
 
           <div className="p-4 space-y-4">
-            {/* Stats */}
             <div className="grid grid-cols-2 gap-2">
-              <StatBox label="Power"   value={card.power}   color="#ef4444" icon="BoltIcon"     />
-              <StatBox label="Energy"  value={card.stamina} color="#3B82F6" icon="HeartIcon"    />
+              <StatBox label="Power"   value={card.power}   color="#ef4444" icon="BoltIcon" />
+              <StatBox label="Energy"  value={card.stamina} color="#3B82F6" icon="HeartIcon" />
               <StatBox label="Stealth" value={card.stealth} color="#2D6A4F" icon="EyeSlashIcon" />
               <StatBox label="Beauty"  value={card.beauty}  color="#ec4899" icon="SparklesIcon" />
             </div>
 
-            {/* HP + Card Level */}
             {(card.hp || card.cardLevel) && (
               <div className="grid grid-cols-2 gap-2">
                 {card.hp && (
@@ -226,7 +261,6 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
               </div>
             )}
 
-            {/* Description */}
             {card.description && (
               <div className="bg-adventure-bg rounded-2xl p-3 border border-adventure-border">
                 <p className="text-xs font-sans font-bold text-earth-400 uppercase tracking-widest mb-2">Description</p>
@@ -234,7 +268,6 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
               </div>
             )}
 
-            {/* Hint */}
             {card.hint && (
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3">
                 <p className="text-xs font-sans font-bold text-amber-600 uppercase tracking-widest mb-1.5 flex items-center gap-1">
@@ -244,20 +277,22 @@ export default function FullCardViewer({ card, onClose }: FullCardViewerProps) {
               </div>
             )}
 
-            {/* Collected date */}
             {card.collectedDate && (
               <p className="text-xs font-sans text-earth-400 text-center">Collected {card.collectedDate}</p>
             )}
 
-            {/* Trade button */}
-            <button
-              onClick={handleTrade}
-              className="w-full py-3 rounded-2xl text-white font-sans font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #2D6A4F, #3D9068)' }}
-            >
-              <Icon name="ArrowsRightLeftIcon" size={16} />
-              Offer for Trade
-            </button>
+            {/* Trade button — only show if card is collected */}
+            {card.collected && (
+              <button
+                onClick={handleListForTrade}
+                disabled={listing || alreadyListed}
+                className="w-full py-3 rounded-2xl text-white font-sans font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: 'linear-gradient(135deg, #2D6A4F, #3D9068)' }}
+              >
+                <Icon name="ArrowsRightLeftIcon" size={16} />
+                {alreadyListed ? 'Already Listed for Trade' : listing ? 'Listing...' : 'List for Trade'}
+              </button>
+            )}
           </div>
         </div>
       </div>
