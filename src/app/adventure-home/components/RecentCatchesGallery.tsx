@@ -42,30 +42,41 @@ export default function RecentCatchesGallery() {
     return () => { isCancelled = true; };
   }, [user]);
 
-  if (loading) {
-    return (
-      <div className="bg-white rounded-2xl border border-adventure-border shadow-card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-xl text-primary-800">Recent Catches</h2>
+  return (
+    <div className="bg-white rounded-2xl border border-adventure-border shadow-card p-5">
+      {/* Header with buttons */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <h2 className="font-display text-xl text-primary-800">My Catch Log</h2>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/catch-log"
+            className="inline-flex items-center gap-2 text-white font-sans font-semibold text-xs px-4 py-2.5 rounded-xl transition-all active:scale-95 hover:shadow-lg"
+            style={{ background: 'linear-gradient(135deg, #ff751f, #e85a00)' }}
+          >
+            <Icon name="PlusCircleIcon" size={14} />
+            Log a Catch
+          </Link>
+          <Link
+            href="/catch-log"
+            className="inline-flex items-center gap-2 font-sans font-semibold text-xs px-4 py-2.5 rounded-xl border border-adventure-border text-earth-500 hover:bg-adventure-bg transition-all active:scale-95"
+          >
+            <Icon name="EyeIcon" size={14} />
+            View All
+          </Link>
         </div>
+      </div>
+
+      {/* Loading state */}
+      {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map(i => (
             <div key={i} className="aspect-[4/3] rounded-2xl bg-earth-100 animate-pulse" />
           ))}
         </div>
-      </div>
-    );
-  }
+      )}
 
-  if (catches.length === 0) {
-    return (
-      <div className="bg-white rounded-2xl border border-adventure-border shadow-card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-xl text-primary-800">Recent Catches</h2>
-          <Link href="/catch-log" className="text-xs font-sans font-semibold hover:underline" style={{ color: '#ff751f' }}>
-            View All →
-          </Link>
-        </div>
+      {/* Empty state */}
+      {!loading && catches.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center mb-3">
             <Icon name="CameraIcon" size={28} className="text-primary-300" />
@@ -74,44 +85,36 @@ export default function RecentCatchesGallery() {
             No approved catches yet. Log a catch and get it approved to see it here!
           </p>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  return (
-    <div className="bg-white rounded-2xl border border-adventure-border shadow-card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display text-xl text-primary-800">Recent Catches</h2>
-        <Link href="/catch-log" className="text-xs font-sans font-semibold hover:underline" style={{ color: '#ff751f' }}>
-          View All →
-        </Link>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {catches.map(c => (
-          <Link key={c.id} href="/catch-log" className="group block">
-            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-earth-100 border border-adventure-border">
-              {c.photo_url ? (
-                <img
-                  src={c.photo_url}
-                  alt={c.species}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Icon name="CameraIcon" size={32} className="text-earth-300" />
+      {/* Gallery */}
+      {!loading && catches.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {catches.map(c => (
+            <Link key={c.id} href="/catch-log" className="group block">
+              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-earth-100 border border-adventure-border">
+                {c.photo_url ? (
+                  <img
+                    src={c.photo_url}
+                    alt={c.species}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Icon name="CameraIcon" size={32} className="text-earth-300" />
+                  </div>
+                )}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-8">
+                  <p className="font-sans font-semibold text-white text-sm">{c.species}</p>
+                  <p className="text-white/70 text-xs font-sans">
+                    {new Date(c.submitted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
                 </div>
-              )}
-              {/* Overlay */}
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-8">
-                <p className="font-sans font-semibold text-white text-sm">{c.species}</p>
-                <p className="text-white/70 text-xs font-sans">
-                  {new Date(c.submitted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </p>
               </div>
-            </div>
-          </Link>
-        ))}
-      </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
