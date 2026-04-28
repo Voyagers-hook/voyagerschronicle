@@ -229,7 +229,7 @@ export default function Sidebar({ currentPath }: { currentPath?: string }) {
                     Set Password <span className="normal-case font-normal">(optional)</span>
                   </label>
                   <div className="space-y-2">
-                    <input type="password" value={newPassword} onChange={e => { setNewPassword(e.target.value); setAccountErr(''); }}
+                    <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
                       placeholder="New password (min 8 chars)"
                       className="w-full border border-adventure-border rounded-xl px-3 py-2 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white" />
                     <input type="password" value={confirmPassword} onChange={e => { setConfirmPassword(e.target.value); setAccountErr(''); }}
