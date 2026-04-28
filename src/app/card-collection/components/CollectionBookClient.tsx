@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { rarityConfig, CardRarity, FishingCard } from '@/app/card-collection/data/cardData';
 import CardSlot from './CardSlot';
 import CardDetailModal from './CardDetailModal';
@@ -18,33 +18,53 @@ const TEX_RIVET = 'https://raw.githubusercontent.com/Voyagers-hook/images/refs/h
 const TEX_LEATHER = 'https://github.com/Voyagers-hook/images/blob/main/leather%20texture.png?raw=true';
 
 export default function CollectionBookClient() {
-  const { user } = useAuth();
-  const supabase = createClient();
+  const { user, loading: authLoading } = useAuth();
+
+  // ✅ Memoize supabase client so it's not recreated every render
+  const supabase = useMemo(() => createClient(), []);
+
   const [selectedCard, setSelectedCard] = useState<FishingCard | null>(null);
   const [filterRarity, setFilterRarity] = useState<CardRarity | 'All'>('All');
   const [showCollectedOnly, setShowCollectedOnly] = useState(false);
   const [cards, setCards] = useState<FishingCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [flipDir, setFlipDir] = useState<'left' | 'right' | null>(null);
+  const [isFlipping, setIsFlipping] = useState(false);
 
   useEffect(() => {
+    // ✅ Wait for auth to resolve before fetching
+    if (authLoading) return;
+
     const loadCards = async () => {
       setLoading(true);
-      const { data: allCards, error } = await supabase
+      setError(null);
+
+      const { data: allCards, error: fetchError } = await supabase
         .from('cards')
         .select('*')
         .order('card_number', { ascending: true });
 
-      if (error || !allCards) { setLoading(false); return; }
+      if (fetchError || !allCards) {
+        // ✅ Surface the error to the user
+        setError(fetchError?.message ?? 'Failed to load cards.');
+        setLoading(false);
+        return;
+      }
 
       let collectedMap = new Map<string, string>();
       if (user) {
-        const { data: userCards } = await supabase
+        const { data: userCards, error: userCardsError } = await supabase
           .from('user_cards')
           .select('card_id, collected_at')
           .eq('user_id', user.id)
           .eq('opened', true);
+
+        if (userCardsError) {
+          console.error('Failed to load user cards:', userCardsError.message);
+          // Non-fatal: we still show cards, just without collected status
+        }
 
         if (userCards) {
           userCards.forEach((uc: { card_id: string; collected_at: string }) => {
@@ -65,7 +85,8 @@ export default function CollectionBookClient() {
         image: c.image_url ?? undefined,
         power: c.power ?? 0,
         stealth: c.stealth ?? 0,
-        stamina: c.energy ?? 0,
+        // ✅ Fixed: stamina now maps to c.stamina, not c.energy
+        stamina: c.stamina ?? 0,
         energy: c.energy ?? 0,
         beauty: c.beauty ?? 0,
         hp: c.hp ?? undefined,
@@ -88,8 +109,9 @@ export default function CollectionBookClient() {
       setCards(mapped);
       setLoading(false);
     };
+
     loadCards();
-  }, [user]);
+  }, [user, authLoading, supabase]);
 
   useEffect(() => { setCurrentPage(0); }, [filterRarity, showCollectedOnly]);
 
@@ -107,16 +129,49 @@ export default function CollectionBookClient() {
   const total = cards.length;
   const progress = total > 0 ? Math.round((collected / total) * 100) : 0;
 
+  // ✅ Guard against rapid clicks with isFlipping state
   const goToPage = (dir: 'prev' | 'next') => {
+    if (isFlipping) return;
+
     if (dir === 'prev' && currentPage > 0) {
+      setIsFlipping(true);
       setFlipDir('right');
-      setTimeout(() => { setCurrentPage(p => p - 1); setFlipDir(null); }, 250);
+      setTimeout(() => {
+        setCurrentPage(p => p - 1);
+        setFlipDir(null);
+        setIsFlipping(false);
+      }, 250);
     }
     if (dir === 'next' && currentPage < totalPages - 1) {
+      setIsFlipping(true);
       setFlipDir('left');
-      setTimeout(() => { setCurrentPage(p => p + 1); setFlipDir(null); }, 250);
+      setTimeout(() => {
+        setCurrentPage(p => p + 1);
+        setFlipDir(null);
+        setIsFlipping(false);
+      }, 250);
     }
   };
+
+  // ✅ Dot navigation also guarded
+  const goToPageDirect = (targetPage: number) => {
+    if (isFlipping || targetPage === currentPage) return;
+    setIsFlipping(true);
+    setFlipDir(targetPage > currentPage ? 'left' : 'right');
+    setTimeout(() => {
+      setCurrentPage(targetPage);
+      setFlipDir(null);
+      setIsFlipping(false);
+    }, 250);
+  };
+
+  // ✅ Compute visible dot range so pages beyond 7 are reachable
+  const maxDots = 7;
+  const dotCount = Math.min(totalPages, maxDots);
+  const dotStart = Math.min(
+    Math.max(0, currentPage - Math.floor(maxDots / 2)),
+    Math.max(0, totalPages - maxDots)
+  );
 
   return (
     <>
@@ -289,7 +344,20 @@ export default function CollectionBookClient() {
           <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-10 pointer-events-none z-10 hidden lg:block"
             style={{ background: 'linear-gradient(to right, transparent, rgba(0,0,0,0.06), rgba(0,0,0,0.1), rgba(0,0,0,0.06), transparent)' }} />
 
-          {loading ? (
+          {/* ✅ Error state */}
+          {error ? (
+            <div className="flex flex-col items-center justify-center h-80 gap-3">
+              <Icon name="ExclamationTriangleIcon" size={48} style={{ color: '#B45309' }} />
+              <p className="text-lg font-bold" style={{ color: '#8B7040' }}>Something went wrong</p>
+              <p className="text-sm" style={{ color: '#A08050', fontStyle: 'italic' }}>{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 px-4 py-2 rounded-lg text-xs font-bold text-white"
+                style={{ background: 'linear-gradient(180deg, #C4A04A 0%, #8B6914 100%)' }}>
+                Retry
+              </button>
+            </div>
+          ) : loading ? (
             <div className="flex items-center justify-center h-80">
               <div className="text-center">
                 <Icon name="ArrowPathIcon" size={36} className="animate-spin mx-auto mb-3" style={{ color: '#A08050' }} />
@@ -333,9 +401,9 @@ export default function CollectionBookClient() {
           )}
 
           {/* ── Page Navigation inside the parchment ── */}
-          {!loading && filtered.length > 0 && (
+          {!loading && !error && filtered.length > 0 && (
             <div className="relative z-10 px-5 lg:px-8 pb-5 flex items-center justify-between">
-              <button onClick={() => goToPage('prev')} disabled={currentPage === 0}
+              <button onClick={() => goToPage('prev')} disabled={currentPage === 0 || isFlipping}
                 className="flex items-center gap-1.5 font-bold text-xs px-4 py-2 rounded-lg transition-all disabled:opacity-25 disabled:cursor-not-allowed active:scale-95"
                 style={{
                   background: 'linear-gradient(180deg, #C4A04A 0%, #8B6914 100%)',
@@ -349,11 +417,14 @@ export default function CollectionBookClient() {
 
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(totalPages, 7) }).map((_, i) => {
-                    const isActive = i === currentPage;
+                  {/* ✅ Sliding window dots so all pages are reachable */}
+                  {Array.from({ length: dotCount }).map((_, i) => {
+                    const pageIndex = dotStart + i;
+                    const isActive = pageIndex === currentPage;
                     return (
-                      <button key={i}
-                        onClick={() => { setFlipDir(i > currentPage ? 'left' : 'right'); setTimeout(() => { setCurrentPage(i); setFlipDir(null); }, 250); }}
+                      <button key={pageIndex}
+                        onClick={() => goToPageDirect(pageIndex)}
+                        disabled={isFlipping}
                         className="rounded-full transition-all"
                         style={{
                           width: isActive ? 20 : 8,
@@ -369,7 +440,7 @@ export default function CollectionBookClient() {
                 </span>
               </div>
 
-              <button onClick={() => goToPage('next')} disabled={currentPage >= totalPages - 1}
+              <button onClick={() => goToPage('next')} disabled={currentPage >= totalPages - 1 || isFlipping}
                 className="flex items-center gap-1.5 font-bold text-xs px-4 py-2 rounded-lg transition-all disabled:opacity-25 disabled:cursor-not-allowed active:scale-95"
                 style={{
                   background: 'linear-gradient(180deg, #C4A04A 0%, #8B6914 100%)',
