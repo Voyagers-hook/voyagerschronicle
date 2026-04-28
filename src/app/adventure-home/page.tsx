@@ -5,7 +5,6 @@ import CardGameKpis from './components/CardGameKpis';
 import RecentCatchesGallery from './components/RecentCatchesGallery';
 import RecentCards from './components/RecentCards';
 import TradeActivity from './components/TradeActivity';
-import RecentCatchActivity from './components/WeeklyCatchChart';
 import FeaturedTip from './components/FeaturedTip';
 
 export default function AdventureHomePage() {
@@ -17,7 +16,6 @@ export default function AdventureHomePage() {
         <RecentCatchesGallery />
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 space-y-6">
-            <RecentCatchActivity />
             <RecentCards />
           </div>
           <div className="space-y-6">
