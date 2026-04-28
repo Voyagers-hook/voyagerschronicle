@@ -31,10 +31,11 @@ interface CatchSubmission {
   id: string;
   user_id: string;
   species: string;
-  weight_kg: number | null;
+  weight_lbs: number | null;
   length_cm: number | null;
   location: string | null;
   notes: string | null;
+  photo_url: string | null;
   catch_status: 'pending' | 'approved' | 'rejected';
   submitted_at: string;
   username?: string;
@@ -532,7 +533,7 @@ export default function AdminPage() {
         {/* ══════════════════════════════════════════════════════════════
             CATCH SUBMISSIONS
         ══════════════════════════════════════════════════════════════ */}
-        {tab === 'catch-submissions' && (
+              {tab === 'catch-submissions' && (
           <div className="space-y-4">
             <p className="text-sm font-sans text-earth-400">{pendingCount} pending review · {submissions.length} total</p>
             {submissions.length === 0 ? (
@@ -544,6 +545,16 @@ export default function AdminPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {submissions.map(sub => (
                   <div key={sub.id} className="bg-white rounded-2xl border border-adventure-border shadow-card overflow-hidden">
+                    {/* Photo */}
+                    {sub.photo_url && (
+                      <div className="relative w-full aspect-[4/3] bg-earth-100">
+                        <img
+                          src={sub.photo_url}
+                          alt={`${sub.species} catch`}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
                     <div className="bg-gradient-to-r from-primary-700 to-primary-500 p-4 flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold text-white font-sans flex-shrink-0">
                         {(sub.username || 'U').slice(0, 2).toUpperCase()}
@@ -564,14 +575,14 @@ export default function AdminPage() {
                       <div className="grid grid-cols-2 gap-2 text-xs font-sans">
                         <div className="bg-adventure-bg rounded-xl p-2">
                           <p className="text-earth-400 uppercase tracking-wide font-semibold mb-0.5">Weight</p>
-                          <p className="font-semibold text-primary-700">{sub.weight_kg ? `${sub.weight_kg}kg` : '—'}</p>
+                          <p className="font-semibold text-primary-700">{sub.weight_lbs ? `${sub.weight_lbs} lbs` : '—'}</p>
                         </div>
                         <div className="bg-adventure-bg rounded-xl p-2">
                           <p className="text-earth-400 uppercase tracking-wide font-semibold mb-0.5">Length</p>
-                          <p className="font-semibold text-primary-700">{sub.length_cm ? `${sub.length_cm}cm` : '—'}</p>
+                          <p className="font-semibold text-primary-700">{sub.length_cm ? `${sub.length_cm} cm` : '—'}</p>
                         </div>
                       </div>
-                      {sub.notes && <p className="text-xs font-sans text-earth-500 italic">"{sub.notes}"</p>}
+                      {sub.notes && <p className="text-xs font-sans text-earth-500 italic">&ldquo;{sub.notes}&rdquo;</p>}
                       {sub.catch_status === 'pending' && (
                         <div className="flex gap-2 pt-1">
                           <button onClick={() => handleCatchStatus(sub.id, 'approved')}
@@ -591,7 +602,6 @@ export default function AdminPage() {
             )}
           </div>
         )}
-
         {/* ══════════════════════════════════════════════════════════════
             SEND CARDS
         ══════════════════════════════════════════════════════════════ */}
