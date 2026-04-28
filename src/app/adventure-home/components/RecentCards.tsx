@@ -11,6 +11,7 @@ interface RecentCard {
   name: string;
   rarity: string;
   habitat: string;
+  image_url: string | null;
   gradient: string;
   border_color: string;
   foil: boolean;
@@ -32,14 +33,18 @@ export default function RecentCards() {
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
+    let isCancelled = false;
     const supabase = createClient();
+
     supabase
       .from('user_cards')
-      .select('collected_at, cards(id, name, rarity, habitat, gradient, border_color, foil, power)')
+      .select('collected_at, cards(id, name, rarity, habitat, image_url, gradient, border_color, foil, power)')
       .eq('user_id', user.id)
       .order('collected_at', { ascending: false })
       .limit(4)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (isCancelled) return;
+        if (error) console.error('Recent cards error:', error);
         const mapped = (data || []).map((uc: Record<string, unknown>) => {
           const card = uc.cards as Record<string, unknown> | null;
           return card ? {
@@ -47,6 +52,7 @@ export default function RecentCards() {
             name: card.name as string,
             rarity: card.rarity as string,
             habitat: card.habitat as string,
+            image_url: card.image_url as string | null,
             gradient: card.gradient as string,
             border_color: card.border_color as string,
             foil: card.foil as boolean,
@@ -57,6 +63,8 @@ export default function RecentCards() {
         setCards(mapped);
         setLoading(false);
       });
+
+    return () => { isCancelled = true; };
   }, [user]);
 
   return (
@@ -73,7 +81,7 @@ export default function RecentCards() {
 
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[1,2,3,4].map(i => <div key={i} className="aspect-[2/3] rounded-2xl bg-earth-100 animate-pulse" />)}
+          {[1, 2, 3, 4].map(i => <div key={i} className="aspect-[2/3] rounded-2xl bg-earth-100 animate-pulse" />)}
         </div>
       ) : cards.length === 0 ? (
         <div className="text-center py-8">
@@ -90,22 +98,41 @@ export default function RecentCards() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {cards.map((card) => (
-            <Link key={card.id} href="/card-collection" className="block">
+            <Link key={card.id} href="/card-collection" className="group block">
               <div
-                className="aspect-[2/3] rounded-2xl overflow-hidden relative cursor-pointer card-lift"
+                className="aspect-[2/3] rounded-2xl overflow-hidden relative cursor-pointer transition-transform duration-200 group-hover:scale-105"
                 style={{ border: `2px solid ${card.border_color}` }}
               >
-                <div className={`bg-gradient-to-br ${card.gradient} w-full h-full flex flex-col items-center justify-center p-2 relative`}>
-                  {card.foil && (
-                    <div className="absolute inset-0 opacity-30 pointer-events-none foil-shimmer" />
-                  )}
-                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center mb-1 relative z-10">
-                    <Icon name="SparklesIcon" size={18} className="text-white/80" />
+                {/* Card image or gradient fallback */}
+                {card.image_url ? (
+                  <img
+                    src={card.image_url}
+                    alt={card.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className={`bg-gradient-to-br ${card.gradient} w-full h-full flex flex-col items-center justify-center p-2 relative`}>
+                    {card.foil && (
+                      <div className="absolute inset-0 opacity-30 pointer-events-none foil-shimmer" />
+                    )}
+                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center mb-1 relative z-10">
+                      <Icon name="SparklesIcon" size={18} className="text-white/80" />
+                    </div>
+                    <p className="text-white font-display text-xs text-center leading-tight drop-shadow relative z-10">{card.name}</p>
                   </div>
-                  <p className="text-white font-display text-xs text-center leading-tight drop-shadow relative z-10">{card.name}</p>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 bg-white/95 px-2 py-1">
-                  <span className={`text-xs font-sans font-bold ${rarityColors[card.rarity] || 'text-earth-600'}`}>{card.rarity}</span>
+                )}
+
+                {/* Foil overlay on images */}
+                {card.image_url && card.foil && (
+                  <div className="absolute inset-0 opacity-30 pointer-events-none foil-shimmer" />
+                )}
+
+                {/* Bottom bar with name and rarity */}
+                <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm px-2 py-1.5">
+                  <p className="text-white font-display text-[10px] leading-tight truncate">{card.name}</p>
+                  <span className={`text-[10px] font-sans font-bold ${card.image_url ? 'text-white/80' : rarityColors[card.rarity] || 'text-earth-600'}`}>
+                    {card.rarity}
+                  </span>
                 </div>
               </div>
             </Link>
