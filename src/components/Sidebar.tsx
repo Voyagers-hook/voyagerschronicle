@@ -118,6 +118,7 @@ export default function Sidebar({ currentPath }: { currentPath?: string }) {
   };
 
   const handleSavePassword = async () => {
+     setAccountErr('');
     if (!newPassword || !user) return;
     if (newPassword.length < 8) { setAccountErr('Password must be at least 8 characters.'); return; }
     if (newPassword !== confirmPassword) { setAccountErr('Passwords do not match.'); return; }
@@ -232,7 +233,7 @@ export default function Sidebar({ currentPath }: { currentPath?: string }) {
                     <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
                       placeholder="New password (min 8 chars)"
                       className="w-full border border-adventure-border rounded-xl px-3 py-2 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white" />
-                    <input type="password" value={confirmPassword} onChange={e => { setConfirmPassword(e.target.value); setAccountErr(''); }}
+                    <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                       placeholder="Confirm password"
                       className="w-full border border-adventure-border rounded-xl px-3 py-2 text-sm font-sans text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white" />
                     <button onClick={handleSavePassword} disabled={savingPassword || !newPassword}
