@@ -19,15 +19,15 @@ const TEX_LEATHER = 'https://voyagers-hook.github.io/images/leather%20texture.pn
 
 export default function CollectionBookClient() {
   const { user, loading: authLoading } = useAuth();
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => createClient(),[]);
 
   const [selectedCard, setSelectedCard] = useState<FishingCard | null>(null);
-  const [filterRarity, setFilterRarity] = useState<CardRarity | 'All'>('All');
+  const[filterRarity, setFilterRarity] = useState<CardRarity | 'All'>('All');
   const [showCollectedOnly, setShowCollectedOnly] = useState(false);
-  const[cards, setCards] = useState<FishingCard[]>([]);
+  const [cards, setCards] = useState<FishingCard[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const[currentPage, setCurrentPage] = useState(0);
+  const[error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
   const [flipDir, setFlipDir] = useState<'left' | 'right' | null>(null);
   const [isFlipping, setIsFlipping] = useState(false);
 
@@ -105,9 +105,9 @@ export default function CollectionBookClient() {
     };
 
     loadCards();
-  }, [user, authLoading, supabase]);
+  },[user, authLoading, supabase]);
 
-  useEffect(() => { setCurrentPage(0); },[filterRarity, showCollectedOnly]);
+  useEffect(() => { setCurrentPage(0); }, [filterRarity, showCollectedOnly]);
 
   const filtered = cards.filter(c => {
     if (filterRarity !== 'All' && c.rarity !== filterRarity) return false;
@@ -169,8 +169,10 @@ export default function CollectionBookClient() {
       <div className="relative rounded-2xl overflow-hidden"
         style={{
           padding: '12px',
-          backgroundImage: `url('${TEX_WOOD}')`,
+          backgroundColor: '#5c4033', // FALLBACK BROWN
+          backgroundImage: `url("${TEX_WOOD}")`,
           backgroundSize: '512px 512px',
+          backgroundRepeat: 'repeat',
           boxShadow: '0 12px 50px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.1), inset 0 -2px 4px rgba(0,0,0,0.3)',
         }}>
 
@@ -187,8 +189,10 @@ export default function CollectionBookClient() {
 
         <div className="relative overflow-hidden rounded-t-lg"
           style={{
-            backgroundImage: `url('${TEX_LEATHER}')`,
+            backgroundColor: '#3e2723', // FALLBACK LEATHER
+            backgroundImage: `url("${TEX_LEATHER}")`,
             backgroundSize: '600px 600px',
+            backgroundRepeat: 'repeat',
             borderBottom: '3px solid rgba(0,0,0,0.4)',
             boxShadow: 'inset 0 -3px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.05)',
           }}>
@@ -260,8 +264,10 @@ export default function CollectionBookClient() {
 
         <div className="relative flex flex-wrap items-center gap-2 px-4 py-2.5"
           style={{
-            backgroundImage: `url('${TEX_WOOD}')`,
+            backgroundColor: '#5c4033', // FALLBACK BROWN
+            backgroundImage: `url("${TEX_WOOD}")`,
             backgroundSize: '512px 512px',
+            backgroundRepeat: 'repeat',
             boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.3)',
             borderBottom: '2px solid rgba(0,0,0,0.3)',
           }}>
@@ -305,8 +311,10 @@ export default function CollectionBookClient() {
 
         <div className="relative overflow-hidden rounded-b-lg"
           style={{
-            backgroundImage: `url('${TEX_PARCHMENT}')`,
+            backgroundColor: '#f1e4c3', // FALLBACK PARCHMENT
+            backgroundImage: `url("${TEX_PARCHMENT}")`,
             backgroundSize: '1024px 1024px',
+            backgroundRepeat: 'repeat',
             boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.15), inset 0 -2px 8px rgba(0,0,0,0.1)',
             minHeight: '400px',
           }}>
