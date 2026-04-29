@@ -17,28 +17,28 @@ interface SupabaseCard {
   drop_rate?: number; points_value?: number;
 }
 
-const TEX_LEATHER  = 'https://voyagers-hook.github.io/images/leather%20texture.png';
-const TEX_PARCHMENT = 'https://voyagers-hook.github.io/images/parchment.png';
-const TEX_WOOD     = 'https://voyagers-hook.github.io/images/wood%20texture.png';
-const TEX_RIVET    = 'https://voyagers-hook.github.io/images/rivet.png';
+const BASE = 'https://voyagers-hook.github.io/images';
+const TEX_WOOD      = `${BASE}/wood%20texture.png`;
+const TEX_LEATHER   = `${BASE}/leather%20texture.png`;
+const TEX_PARCHMENT = `${BASE}/parchment.png`;
+const RIVET         = `${BASE}/rivet.png`;
 
 const RARITIES: CardRarity[] = ['Widespread', 'Elusive', 'Specimen', 'Legendary'];
 const RARITY_DOT: Record<string, string> = {
   Widespread: '#c49050', Elusive: '#2D6A4F', Specimen: '#3B82F6', Legendary: '#F59E0B',
 };
-const CARDS_PER_SPREAD = 8; // 4 per page
 
 export default function CollectionBookClient() {
   const { user, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
-  const [cards, setCards]             = useState<FishingCard[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [cards, setCards]               = useState<FishingCard[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [currentPage, setCurrentPage]   = useState(0);
   const [filterRarity, setFilterRarity] = useState<CardRarity | 'All'>('All');
   const [showCollectedOnly, setShowCollectedOnly] = useState(false);
   const [selectedCard, setSelectedCard] = useState<FishingCard | null>(null);
-  const [isFlipping, setIsFlipping]   = useState(false);
+  const [isFlipping, setIsFlipping]     = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -65,7 +65,6 @@ export default function CollectionBookClient() {
         foil: c.foil ?? false,
         gradient: c.gradient ?? 'from-blue-400 via-cyan-300 to-teal-400',
         borderColor: c.border_color ?? '#3B82F6',
-        dropRate: c.drop_rate, pointsValue: c.points_value,
         collected: collectedMap.has(c.id),
         collectedDate: collectedMap.has(c.id)
           ? new Date(collectedMap.get(c.id)!).toLocaleDateString('en-GB') : undefined,
@@ -81,277 +80,375 @@ export default function CollectionBookClient() {
     return true;
   }), [cards, filterRarity, showCollectedOnly]);
 
-  const totalSpreads   = Math.max(1, Math.ceil(filtered.length / CARDS_PER_SPREAD));
-  const spread         = filtered.slice(currentPage * CARDS_PER_SPREAD, (currentPage + 1) * CARDS_PER_SPREAD);
+  const totalSpreads   = Math.max(1, Math.ceil(filtered.length / 8));
+  const spread         = filtered.slice(currentPage * 8, (currentPage + 1) * 8);
   const leftCards      = spread.slice(0, 4);
   const rightCards     = spread.slice(4, 8);
   const collectedCount = cards.filter(c => c.collected).length;
   const progress       = cards.length > 0 ? Math.round((collectedCount / cards.length) * 100) : 0;
-
-  const rarityBreakdown = RARITIES.map(r => ({
-    r, total: cards.filter(c => c.rarity === r).length,
-    owned: cards.filter(c => c.rarity === r && c.collected).length,
-  }));
 
   const flip = (dir: number) => {
     if (isFlipping) return;
     const next = currentPage + dir;
     if (next < 0 || next >= totalSpreads) return;
     setIsFlipping(true);
-    setTimeout(() => { setCurrentPage(next); setIsFlipping(false); }, 350);
+    setTimeout(() => { setCurrentPage(next); setIsFlipping(false); }, 300);
   };
 
-  // ── Page slot renderer ─────────────────────────────────────────────────────
-  const PageSlots = ({ pageCards, side }: { pageCards: FishingCard[]; side: 'left' | 'right' }) => (
-    <div className="grid grid-cols-2 gap-5 lg:gap-7">
-      {Array.from({ length: 4 }).map((_, i) => {
-        const card = pageCards[i];
-        const slotNum = currentPage * CARDS_PER_SPREAD + (side === 'left' ? i : i + 4) + 1;
-        if (card) {
-          return (
-            <div key={card.id}
-              className={`group relative transition-all duration-500 hover:scale-105 ${side === 'left' ? '-rotate-1 hover:rotate-0' : 'rotate-1 hover:rotate-0'}`}>
-              <CardSlot card={card} onClick={() => setSelectedCard(card)} />
-            </div>
-          );
-        }
-        return (
-          <div key={`empty-${i}`}
-            className="aspect-[750/1000] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 opacity-30"
-            style={{ borderColor: '#8B6914', backgroundColor: 'rgba(139,105,20,0.05)' }}>
-            <Icon name="LockClosedIcon" size={20} style={{ color: '#8B6914' }} />
-            <span className="text-xs font-serif" style={{ color: '#8B6914' }}>#{String(slotNum).padStart(3, '0')}</span>
-          </div>
-        );
-      })}
+  const EmptySlot = ({ index }: { index: number }) => (
+    <div className="aspect-[750/1000] rounded-xl flex flex-col items-center justify-center gap-2"
+      style={{
+        border: '2px dashed rgba(139,105,20,0.25)',
+        backgroundColor: 'rgba(139,105,20,0.03)',
+      }}>
+      <Icon name="LockClosedIcon" size={18} style={{ color: 'rgba(139,105,20,0.3)' }} />
+      <span className="text-xs font-serif" style={{ color: 'rgba(139,105,20,0.3)' }}>
+        #{String(currentPage * 8 + index + 1).padStart(3, '0')}
+      </span>
     </div>
   );
 
   return (
-    <div className="min-h-screen py-8 px-2 lg:px-6 flex flex-col items-center"
-      style={{ background: '#0e0906', backgroundImage: `url("${TEX_WOOD}")`, backgroundSize: '600px', boxShadow: 'inset 0 0 300px rgba(0,0,0,0.9)' }}>
+    <>
+      {/* ── FULL PAGE WOOD BACKGROUND ── */}
+      <div className="fixed inset-0 -z-10"
+        style={{
+          backgroundImage: `url("${TEX_WOOD}")`,
+          backgroundSize: '400px 400px',
+          backgroundRepeat: 'repeat',
+          filter: 'brightness(0.4)',
+        }} />
 
-      {/* ── OUTER BOOK SHELL ── */}
-      <div className="relative w-full max-w-[1400px]">
+      <div className="min-h-screen py-6 px-4 flex flex-col items-center gap-6">
 
-        {/* Stacked pages effect (right side) */}
-        <div className="absolute right-1 top-2 bottom-2 w-full rounded-[2rem] opacity-40"
-          style={{ background: '#fdf2d9', transform: 'translateX(6px)' }} />
-        <div className="absolute right-1 top-4 bottom-4 w-full rounded-[2rem] opacity-30"
-          style={{ background: '#f5e8c0', transform: 'translateX(12px)' }} />
+        {/* ── BOOK WRAPPER ── */}
+        <div className="w-full max-w-6xl">
 
-        {/* Leather binding shell */}
-        <div className="relative rounded-[2rem] shadow-[0_60px_120px_-10px_rgba(0,0,0,0.9)] overflow-hidden"
-          style={{ backgroundImage: `url("${TEX_LEATHER}")`, backgroundSize: '500px', backgroundColor: '#2a1a0f', border: '3px solid #1a0f07' }}>
+          {/* Outer leather binding — the cover */}
+          <div className="relative rounded-2xl p-4"
+            style={{
+              backgroundImage: `url("${TEX_LEATHER}")`,
+              backgroundSize: '300px 300px',
+              backgroundRepeat: 'repeat',
+              backgroundColor: '#2a1a0f',
+              boxShadow: '0 30px 80px rgba(0,0,0,0.9), 0 0 0 3px #1a0f07, inset 0 1px 0 rgba(255,255,255,0.05)',
+            }}>
 
-          {/* Corner rivets */}
-          {[['top-4 left-4', 'tl'], ['top-4 right-4', 'tr'], ['bottom-4 left-4', 'bl'], ['bottom-4 right-4', 'br']].map(([pos, key]) => (
-            <div key={key} className={`absolute ${pos} w-8 h-8 rounded-full border-2 z-30 flex items-center justify-center`}
-              style={{ borderColor: '#8B6914', backgroundColor: '#3d2810', boxShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#c49050' }} />
-            </div>
-          ))}
+            {/* Corner rivets — positioned precisely */}
+            <img src={RIVET} alt="" className="absolute top-3 left-3 w-8 h-8 z-10" style={{ opacity: 0.8 }} />
+            <img src={RIVET} alt="" className="absolute top-3 right-3 w-8 h-8 z-10" style={{ opacity: 0.8 }} />
+            <img src={RIVET} alt="" className="absolute bottom-3 left-3 w-8 h-8 z-10" style={{ opacity: 0.8 }} />
+            <img src={RIVET} alt="" className="absolute bottom-3 right-3 w-8 h-8 z-10" style={{ opacity: 0.8 }} />
 
-          {/* Gold title bar */}
-          <div className="relative flex items-center justify-between px-8 py-4 z-20"
-            style={{ background: 'linear-gradient(180deg, #8B6914 0%, #5a420a 50%, #3d2c06 100%)', borderBottom: '2px solid #c49050' }}>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#c49050' }}>
-                <Icon name="BookOpenIcon" size={16} className="text-stone-900" />
-              </div>
-              <div>
-                <h1 className="font-serif italic text-amber-100 text-xl tracking-wide leading-none">The Voyager's Chronicle</h1>
-                <p className="text-amber-400/60 text-[10px] uppercase tracking-[0.3em]">Master Angler's Collection</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="text-right">
-                <p className="text-amber-200 font-serif italic text-lg">{collectedCount}/{cards.length}</p>
-                <p className="text-amber-400/50 text-[10px] uppercase tracking-widest">Collected</p>
-              </div>
-              <Link href="/card-opening"
-                className="px-4 py-2 rounded-full font-bold text-xs uppercase tracking-widest text-stone-900 transition-all hover:scale-105 active:scale-95"
-                style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)', boxShadow: '0 4px 12px rgba(245,158,11,0.4)' }}>
-                Open Pack
-              </Link>
-            </div>
-          </div>
-
-          {/* Main book body */}
-          <div className="flex">
-
-            {/* ── LEFT SIDEBAR ── */}
-            <div className="hidden lg:flex flex-col w-56 flex-shrink-0 border-r z-20 p-5 gap-5"
-              style={{ background: 'rgba(20,12,5,0.85)', borderColor: '#3d2810', backdropFilter: 'blur(4px)' }}>
-
-              {/* Progress ring */}
-              <div className="flex flex-col items-center gap-3 py-4 border-b" style={{ borderColor: '#3d2810' }}>
-                <div className="relative w-20 h-20">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
-                    <circle cx="40" cy="40" r="34" fill="transparent" stroke="#3d2810" strokeWidth="6" />
-                    <circle cx="40" cy="40" r="34" fill="transparent" stroke="#c49050" strokeWidth="6"
-                      strokeDasharray={213.6} strokeDashoffset={213.6 - (213.6 * progress) / 100}
-                      className="transition-all duration-1000" strokeLinecap="round" />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-amber-200 font-bold text-sm">{progress}%</span>
-                  </div>
+            {/* Gold title strip across top of book */}
+            <div className="relative rounded-xl mb-3 px-6 py-3 flex items-center justify-between z-10"
+              style={{
+                background: 'linear-gradient(180deg, #a07820 0%, #7a5c14 40%, #5a420a 100%)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.6)',
+                border: '1px solid #c49050',
+              }}>
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: '#c49050', boxShadow: '0 2px 4px rgba(0,0,0,0.4)' }}>
+                  <Icon name="BookOpenIcon" size={14} className="text-stone-900" />
                 </div>
-                <p className="text-amber-200/70 text-[10px] uppercase tracking-widest text-center">Album Complete</p>
+                <div>
+                  <h1 className="font-serif italic text-amber-100 text-lg leading-none tracking-wide">The Voyager's Chronicle</h1>
+                  <p className="text-amber-400/60 text-[9px] uppercase tracking-[0.25em] mt-0.5">Master Angler's Collection</p>
+                </div>
               </div>
-
-              {/* Rarity breakdown */}
-              <div className="space-y-3">
-                <p className="text-amber-400/50 text-[9px] uppercase tracking-[0.3em]">By Rarity</p>
-                {rarityBreakdown.map(({ r, total, owned }) => (
-                  <div key={r} className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: RARITY_DOT[r] }} />
-                        <span className="text-amber-200/60 text-[10px] font-semibold">{r}</span>
-                      </div>
-                      <span className="text-amber-200/50 text-[10px]">{owned}/{total}</span>
-                    </div>
-                    <div className="h-1 rounded-full" style={{ backgroundColor: `${RARITY_DOT[r]}20` }}>
-                      <div className="h-full rounded-full transition-all duration-700"
-                        style={{ width: total > 0 ? `${Math.round((owned / total) * 100)}%` : '0%', backgroundColor: RARITY_DOT[r] }} />
-                    </div>
-                  </div>
-                ))}
+              <div className="flex items-center gap-5">
+                <div className="text-right">
+                  <p className="text-amber-200 font-serif text-base leading-none">{collectedCount} / {cards.length}</p>
+                  <p className="text-amber-400/50 text-[9px] uppercase tracking-widest mt-0.5">Catalogued</p>
+                </div>
+                <Link href="/card-opening"
+                  className="px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-widest text-stone-900 transition-all hover:scale-105 active:scale-95 flex-shrink-0"
+                  style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)', boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
+                  Open Pack
+                </Link>
               </div>
-
-              {/* Filters */}
-              <div className="space-y-2 border-t pt-4" style={{ borderColor: '#3d2810' }}>
-                <p className="text-amber-400/50 text-[9px] uppercase tracking-[0.3em]">Filter by Rarity</p>
-                {['All', ...RARITIES].map(r => (
-                  <button key={r} onClick={() => { setFilterRarity(r as any); setCurrentPage(0); }}
-                    className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-semibold uppercase tracking-wide transition-all flex items-center gap-2 ${filterRarity === r ? 'text-stone-900' : 'text-amber-200/40 hover:text-amber-200/80'}`}
-                    style={filterRarity === r ? { backgroundColor: '#c49050' } : {}}>
-                    {r !== 'All' && <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: RARITY_DOT[r] }} />}
-                    {r}
-                  </button>
-                ))}
-              </div>
-
-              {/* Collected only toggle */}
-              <button onClick={() => { setShowCollectedOnly(!showCollectedOnly); setCurrentPage(0); }}
-                className={`w-full py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all border ${showCollectedOnly ? 'text-stone-900 border-amber-400' : 'text-amber-200/40 border-white/5 hover:border-white/10'}`}
-                style={showCollectedOnly ? { backgroundColor: '#c49050' } : {}}>
-                {showCollectedOnly ? 'Show All' : 'Caught Only'}
-              </button>
             </div>
 
-            {/* ── BOOK PAGES ── */}
-            <div className="flex-1 flex min-h-0">
+            {/* Inner book — pages + spine */}
+            <div className="flex rounded-xl overflow-hidden"
+              style={{ boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }}>
 
-              {/* LEFT PAGE */}
-              <div className="flex-1 relative overflow-hidden"
-                style={{ backgroundImage: `url("${TEX_PARCHMENT}")`, backgroundSize: '900px', backgroundColor: '#fdf2d9', boxShadow: 'inset -30px 0 60px rgba(0,0,0,0.12)' }}>
+              {/* ── LEFT SIDEBAR ── */}
+              <div className="hidden lg:flex flex-col flex-shrink-0 w-48 border-r"
+                style={{
+                  backgroundImage: `url("${TEX_LEATHER}")`,
+                  backgroundSize: '300px 300px',
+                  backgroundRepeat: 'repeat',
+                  backgroundColor: '#1e1208',
+                  borderColor: '#3d2810',
+                }}>
 
-                {/* Page vignette */}
-                <div className="absolute inset-0 pointer-events-none"
-                  style={{ background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.08) 100%)' }} />
+                {/* Progress circle */}
+                <div className="flex flex-col items-center gap-2 p-5 border-b" style={{ borderColor: '#3d2810' }}>
+                  <div className="relative w-16 h-16">
+                    <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
+                      <circle cx="32" cy="32" r="26" fill="transparent" stroke="#3d2810" strokeWidth="5" />
+                      <circle cx="32" cy="32" r="26" fill="transparent" stroke="#c49050" strokeWidth="5"
+                        strokeDasharray={163.4}
+                        strokeDashoffset={163.4 - (163.4 * progress) / 100}
+                        strokeLinecap="round" className="transition-all duration-1000" />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-amber-200 font-bold text-xs">{progress}%</span>
+                    </div>
+                  </div>
+                  <p className="text-amber-200/50 text-[9px] uppercase tracking-widest text-center">Complete</p>
+                </div>
+
+                {/* Rarity breakdown */}
+                <div className="p-4 space-y-3 border-b" style={{ borderColor: '#3d2810' }}>
+                  <p className="text-amber-400/40 text-[8px] uppercase tracking-[0.3em]">By Rarity</p>
+                  {RARITIES.map(r => {
+                    const total = cards.filter(c => c.rarity === r).length;
+                    const owned = cards.filter(c => c.rarity === r && c.collected).length;
+                    return (
+                      <div key={r} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: RARITY_DOT[r] }} />
+                            <span className="text-amber-200/50 text-[10px]">{r}</span>
+                          </div>
+                          <span className="text-amber-200/40 text-[10px]">{owned}/{total}</span>
+                        </div>
+                        <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: `${RARITY_DOT[r]}20` }}>
+                          <div className="h-full rounded-full transition-all duration-700"
+                            style={{ width: total > 0 ? `${Math.round((owned / total) * 100)}%` : '0%', backgroundColor: RARITY_DOT[r] }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Filters */}
+                <div className="p-4 space-y-1 flex-1">
+                  <p className="text-amber-400/40 text-[8px] uppercase tracking-[0.3em] mb-2">Filter</p>
+                  {(['All', ...RARITIES] as const).map(r => (
+                    <button key={r}
+                      onClick={() => { setFilterRarity(r as any); setCurrentPage(0); }}
+                      className="w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-2"
+                      style={filterRarity === r
+                        ? { backgroundColor: '#c49050', color: '#1a0f07' }
+                        : { color: 'rgba(253,242,217,0.35)' }}>
+                      {r !== 'All' && (
+                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: RARITY_DOT[r as CardRarity] }} />
+                      )}
+                      {r}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => { setShowCollectedOnly(!showCollectedOnly); setCurrentPage(0); }}
+                    className="w-full mt-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border"
+                    style={showCollectedOnly
+                      ? { backgroundColor: '#c49050', color: '#1a0f07', borderColor: '#c49050' }
+                      : { color: 'rgba(253,242,217,0.3)', borderColor: 'rgba(139,105,20,0.2)' }}>
+                    {showCollectedOnly ? '✓ Caught Only' : 'Caught Only'}
+                  </button>
+                </div>
+              </div>
+
+              {/* ── LEFT PAGE ── */}
+              <div className="flex-1 relative min-h-[600px]"
+                style={{
+                  backgroundImage: `url("${TEX_PARCHMENT}")`,
+                  backgroundSize: '500px 500px',
+                  backgroundRepeat: 'repeat',
+                  backgroundColor: '#fdf2d9',
+                  boxShadow: 'inset -20px 0 40px rgba(0,0,0,0.1)',
+                }}>
+
+                {/* Left page inner shadow from spine */}
+                <div className="absolute inset-y-0 right-0 w-12 pointer-events-none"
+                  style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.12), transparent)' }} />
+                {/* Left page inner shadow from cover edge */}
+                <div className="absolute inset-y-0 left-0 w-6 pointer-events-none"
+                  style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.08), transparent)' }} />
 
                 {/* Page header */}
-                <div className="flex items-end justify-between px-8 pt-7 pb-5 border-b" style={{ borderColor: 'rgba(139,105,20,0.2)' }}>
-                  <div>
-                    <p className="font-serif italic text-stone-600 text-xs uppercase tracking-[0.2em]">Classification: {filterRarity}</p>
-                  </div>
+                <div className="flex items-end justify-between px-6 pt-5 pb-4 border-b"
+                  style={{ borderColor: 'rgba(139,105,20,0.15)' }}>
+                  <p className="font-serif italic text-stone-500 text-xs">
+                    Classification: <span className="text-stone-700 font-semibold">{filterRarity}</span>
+                  </p>
                   <span className="font-serif italic text-stone-400 text-xs">Folio {currentPage * 2 + 1}</span>
                 </div>
 
-                <div className={`p-8 transition-opacity duration-300 ${isFlipping ? 'opacity-0' : 'opacity-100'}`}>
+                {/* Cards grid */}
+                <div className={`p-6 grid grid-cols-2 gap-5 transition-opacity duration-300 ${isFlipping ? 'opacity-0' : 'opacity-100'}`}>
                   {loading ? (
-                    <div className="flex items-center justify-center h-64">
-                      <div className="w-8 h-8 border-2 border-amber-600/30 border-t-amber-600 rounded-full animate-spin" />
-                    </div>
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="aspect-[750/1000] rounded-xl animate-pulse"
+                        style={{ backgroundColor: 'rgba(139,105,20,0.08)' }} />
+                    ))
                   ) : (
-                    <PageSlots pageCards={leftCards} side="left" />
+                    Array.from({ length: 4 }).map((_, i) => (
+                      leftCards[i]
+                        ? (
+                          <div key={leftCards[i].id}
+                            className="transition-all duration-300 hover:scale-105"
+                            style={{ transform: 'rotate(-0.5deg)' }}
+                            onMouseEnter={e => (e.currentTarget.style.transform = 'rotate(0deg) scale(1.05)')}
+                            onMouseLeave={e => (e.currentTarget.style.transform = 'rotate(-0.5deg)')}>
+                            <CardSlot card={leftCards[i]} onClick={() => setSelectedCard(leftCards[i])} />
+                          </div>
+                        )
+                        : <EmptySlot key={`el-${i}`} index={i} />
+                    ))
                   )}
                 </div>
 
-                {/* Previous page arrow — bottom left */}
-                <div className="absolute bottom-6 left-6">
-                  <button onClick={() => flip(-1)} disabled={currentPage === 0 || isFlipping}
-                    className="w-12 h-12 rounded-full border flex items-center justify-center transition-all disabled:opacity-0 hover:scale-110 active:scale-95"
-                    style={{ borderColor: 'rgba(139,105,20,0.3)', backgroundColor: 'rgba(139,105,20,0.08)', color: '#8B6914' }}>
-                    <Icon name="ChevronLeftIcon" size={22} />
+                {/* Previous button */}
+                {currentPage > 0 && (
+                  <button onClick={() => flip(-1)} disabled={isFlipping}
+                    className="absolute bottom-4 left-4 w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                    style={{ backgroundColor: 'rgba(139,105,20,0.15)', border: '1px solid rgba(139,105,20,0.3)', color: '#8B6914' }}>
+                    <Icon name="ChevronLeftIcon" size={18} />
                   </button>
-                </div>
+                )}
 
-                <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-black/10 to-transparent" />
+                {/* Bottom fade */}
+                <div className="absolute bottom-0 left-0 right-0 h-6 pointer-events-none"
+                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.06), transparent)' }} />
               </div>
 
               {/* ── SPINE ── */}
-              <div className="w-10 lg:w-14 flex-shrink-0 relative z-10"
-                style={{ backgroundImage: `url("${TEX_LEATHER}")`, backgroundSize: '200px', backgroundColor: '#1a0f07', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)' }}>
-                <div className="absolute inset-y-0 left-1/2 w-px bg-amber-900/20" />
-                {[25, 50, 75].map(pct => (
-                  <div key={pct} className="absolute w-full h-px" style={{ top: `${pct}%`, backgroundColor: 'rgba(139,105,20,0.2)' }} />
+              <div className="w-8 flex-shrink-0 relative"
+                style={{
+                  backgroundImage: `url("${TEX_LEATHER}")`,
+                  backgroundSize: '300px 300px',
+                  backgroundRepeat: 'repeat',
+                  backgroundColor: '#120a04',
+                  boxShadow: 'inset 0 0 20px rgba(0,0,0,0.9)',
+                }}>
+                {/* Spine highlight line */}
+                <div className="absolute inset-y-0 left-1/2 w-px"
+                  style={{ backgroundColor: 'rgba(196,144,80,0.15)' }} />
+                {/* Horizontal binding bands */}
+                {[20, 40, 60, 80].map(pct => (
+                  <div key={pct} className="absolute w-full h-px"
+                    style={{ top: `${pct}%`, backgroundColor: 'rgba(139,105,20,0.3)' }} />
                 ))}
               </div>
 
-              {/* RIGHT PAGE */}
-              <div className="flex-1 relative overflow-hidden"
-                style={{ backgroundImage: `url("${TEX_PARCHMENT}")`, backgroundSize: '900px', backgroundColor: '#fdf2d9', boxShadow: 'inset 30px 0 60px rgba(0,0,0,0.12)' }}>
+              {/* ── RIGHT PAGE ── */}
+              <div className="flex-1 relative min-h-[600px]"
+                style={{
+                  backgroundImage: `url("${TEX_PARCHMENT}")`,
+                  backgroundSize: '500px 500px',
+                  backgroundRepeat: 'repeat',
+                  backgroundColor: '#f8edd0',
+                  boxShadow: 'inset 20px 0 40px rgba(0,0,0,0.1)',
+                }}>
 
-                <div className="absolute inset-0 pointer-events-none"
-                  style={{ background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.08) 100%)' }} />
+                {/* Right page inner shadow from spine */}
+                <div className="absolute inset-y-0 left-0 w-12 pointer-events-none"
+                  style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.12), transparent)' }} />
+                {/* Right page inner shadow from cover edge */}
+                <div className="absolute inset-y-0 right-0 w-6 pointer-events-none"
+                  style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.08), transparent)' }} />
 
                 {/* Page header */}
-                <div className="flex items-end justify-between px-8 pt-7 pb-5 border-b" style={{ borderColor: 'rgba(139,105,20,0.2)' }}>
-                  <p className="font-serif italic text-stone-400 text-xs">Spread {currentPage + 1} of {totalSpreads}</p>
+                <div className="flex items-end justify-between px-6 pt-5 pb-4 border-b"
+                  style={{ borderColor: 'rgba(139,105,20,0.15)' }}>
+                  <p className="font-serif italic text-stone-400 text-xs">
+                    Spread {currentPage + 1} of {totalSpreads}
+                  </p>
                   <span className="font-serif italic text-stone-400 text-xs">Folio {currentPage * 2 + 2}</span>
                 </div>
 
-                <div className={`p-8 transition-opacity duration-300 ${isFlipping ? 'opacity-0' : 'opacity-100'}`}>
+                {/* Cards grid */}
+                <div className={`p-6 grid grid-cols-2 gap-5 transition-opacity duration-300 ${isFlipping ? 'opacity-0' : 'opacity-100'}`}>
                   {loading ? (
-                    <div className="flex items-center justify-center h-64">
-                      <div className="w-8 h-8 border-2 border-amber-600/30 border-t-amber-600 rounded-full animate-spin" />
-                    </div>
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="aspect-[750/1000] rounded-xl animate-pulse"
+                        style={{ backgroundColor: 'rgba(139,105,20,0.08)' }} />
+                    ))
                   ) : (
-                    <PageSlots pageCards={rightCards} side="right" />
+                    Array.from({ length: 4 }).map((_, i) => (
+                      rightCards[i]
+                        ? (
+                          <div key={rightCards[i].id}
+                            className="transition-all duration-300"
+                            style={{ transform: 'rotate(0.5deg)' }}
+                            onMouseEnter={e => (e.currentTarget.style.transform = 'rotate(0deg) scale(1.05)')}
+                            onMouseLeave={e => (e.currentTarget.style.transform = 'rotate(0.5deg)')}>
+                            <CardSlot card={rightCards[i]} onClick={() => setSelectedCard(rightCards[i])} />
+                          </div>
+                        )
+                        : <EmptySlot key={`er-${i}`} index={i + 4} />
+                    ))
                   )}
                 </div>
 
-                {/* Next page arrow — bottom right */}
-                <div className="absolute bottom-6 right-6">
-                  <button onClick={() => flip(1)} disabled={currentPage >= totalSpreads - 1 || isFlipping}
-                    className="w-12 h-12 rounded-full border flex items-center justify-center transition-all disabled:opacity-0 hover:scale-110 active:scale-95"
-                    style={{ borderColor: 'rgba(139,105,20,0.3)', backgroundColor: 'rgba(139,105,20,0.08)', color: '#8B6914' }}>
-                    <Icon name="ChevronRightIcon" size={22} />
+                {/* Next button */}
+                {currentPage < totalSpreads - 1 && (
+                  <button onClick={() => flip(1)} disabled={isFlipping}
+                    className="absolute bottom-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                    style={{ backgroundColor: 'rgba(139,105,20,0.15)', border: '1px solid rgba(139,105,20,0.3)', color: '#8B6914' }}>
+                    <Icon name="ChevronRightIcon" size={18} />
                   </button>
-                </div>
+                )}
 
-                <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-black/10 to-transparent" />
+                {/* Bottom fade */}
+                <div className="absolute bottom-0 left-0 right-0 h-6 pointer-events-none"
+                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.06), transparent)' }} />
               </div>
             </div>
+
+            {/* Bottom gold strip */}
+            <div className="mt-3 rounded-lg h-3"
+              style={{
+                background: 'linear-gradient(180deg, #5a420a 0%, #8B6914 50%, #5a420a 100%)',
+                border: '1px solid #c49050',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+              }} />
           </div>
 
-          {/* Bottom gold bar */}
-          <div className="h-4 border-t" style={{ background: 'linear-gradient(180deg, #3d2c06 0%, #5a420a 50%, #8B6914 100%)', borderColor: '#c49050' }} />
+          {/* Stacked pages effect — right edge */}
+          <div className="absolute right-2 inset-y-0 pointer-events-none" style={{ zIndex: -1 }}>
+            {Array.from({ length: Math.min(totalSpreads - currentPage - 1, 8) }).map((_, i) => (
+              <div key={i} className="absolute inset-0 rounded-2xl"
+                style={{
+                  backgroundColor: i % 2 === 0 ? '#fdf2d9' : '#f0e4c0',
+                  transform: `translateX(${(i + 1) * 2}px)`,
+                  opacity: 1 - i * 0.12,
+                  zIndex: -i - 1,
+                }} />
+            ))}
+          </div>
         </div>
 
-        {/* Stacked page effect labels */}
-        <div className="absolute -right-3 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-40">
-          {Array.from({ length: Math.min(totalSpreads - currentPage - 1, 6) }).map((_, i) => (
-            <div key={i} className="h-1 rounded-full" style={{ width: `${8 - i}px`, backgroundColor: '#fdf2d9' }} />
+        {/* Mobile filters */}
+        <div className="lg:hidden flex flex-wrap justify-center gap-2 w-full max-w-lg">
+          {(['All', ...RARITIES] as const).map(r => (
+            <button key={r}
+              onClick={() => { setFilterRarity(r as any); setCurrentPage(0); }}
+              className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all border"
+              style={filterRarity === r
+                ? { backgroundColor: '#c49050', color: '#1a0f07', borderColor: '#c49050' }
+                : { color: 'rgba(253,242,217,0.5)', borderColor: 'rgba(139,105,20,0.3)' }}>
+              {r}
+            </button>
           ))}
-        </div>
-      </div>
-
-      {/* Mobile filters (shown below on small screens) */}
-      <div className="lg:hidden mt-6 flex flex-wrap justify-center gap-2">
-        {['All', ...RARITIES].map(r => (
-          <button key={r} onClick={() => { setFilterRarity(r as any); setCurrentPage(0); }}
-            className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all border ${filterRarity === r ? 'text-stone-900 border-amber-400' : 'text-amber-100/40 border-white/10'}`}
-            style={filterRarity === r ? { backgroundColor: '#c49050' } : {}}>
-            {r}
+          <button
+            onClick={() => { setShowCollectedOnly(!showCollectedOnly); setCurrentPage(0); }}
+            className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all border"
+            style={showCollectedOnly
+              ? { backgroundColor: '#c49050', color: '#1a0f07', borderColor: '#c49050' }
+              : { color: 'rgba(253,242,217,0.5)', borderColor: 'rgba(139,105,20,0.3)' }}>
+            {showCollectedOnly ? '✓ Caught Only' : 'Caught Only'}
           </button>
-        ))}
+        </div>
       </div>
 
       {selectedCard && <CardDetailModal card={selectedCard} onClose={() => setSelectedCard(null)} />}
-    </div>
+    </>
   );
 }
